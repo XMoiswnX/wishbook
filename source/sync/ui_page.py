@@ -240,16 +240,16 @@ body.err .title i{background:#f06a9b}
 </div></div>
 
 <script>
-// ---------------- languages: zh is the source text; en / ja are looked up by it ----------------
-const LANGS = [['en', 'English'], ['zh', '繁體中文'], ['zhs', '简体中文'], ['ja', '日本語'], ['ko', '한국어']];
+// ---------------- languages: Traditional Chinese is the source text; the others are looked up by it ----------------
+const LANGS = [['en', 'English'], ['zh-Hant', '繁體中文'], ['zh-Hans', '简体中文'], ['ja', '日本語'], ['ko', '한국어']];
 // small vector flags (emoji flags show up as two letters on Windows)
 const star = (cx, cy, r, rot = -90) => Array.from({ length: 10 }, (_, i) => { const a = (rot + i * 36) * Math.PI / 180, rr = i % 2 ? r * 0.4 : r; return (cx + rr * Math.cos(a)).toFixed(2) + ',' + (cy + rr * Math.sin(a)).toFixed(2); }).join(' ');
 const flag = (id, inner) => '<svg viewBox="0 0 30 20" aria-hidden="true"><clipPath id="fc-' + id + '"><rect width="30" height="20" rx="3.4"/></clipPath><g clip-path="url(#fc-' + id + ')">' + inner + '</g></svg>';
 const trig = (x, y, rot) => '<g transform="rotate(' + rot + ' ' + x + ' ' + y + ')"><rect x="' + (x - 2.2) + '" y="' + (y - 1.6) + '" width="4.4" height=".7" fill="#111"/><rect x="' + (x - 2.2) + '" y="' + (y - .35) + '" width="4.4" height=".7" fill="#111"/><rect x="' + (x - 2.2) + '" y="' + (y + .9) + '" width="4.4" height=".7" fill="#111"/></g>';
 const FLAGS = {
   en: flag('en', '<rect width="30" height="20" fill="#fff"/>' + [0, 2, 4, 6, 8, 10, 12].map((i) => '<rect y="' + (i * 1.538).toFixed(2) + '" width="30" height="1.538" fill="#b22234"/>').join('') + '<rect width="12.4" height="10.77" fill="#3c3b6e"/>' + [1.6, 4.1, 6.6, 9.1].flatMap((x) => [1.7, 4.2, 6.7, 9.2].map((y) => '<circle cx="' + x + '" cy="' + (y - .2) + '" r=".55" fill="#fff"/>')).join('')),
-  zh: flag('zh', '<rect width="30" height="20" fill="#fe0000"/><rect width="15" height="10" fill="#000095"/><circle cx="7.5" cy="5" r="3.7" fill="#fff"/><circle cx="7.5" cy="5" r="3" fill="#000095"/><circle cx="7.5" cy="5" r="2.3" fill="#fff"/>'),
-  zhs: flag('zhs', '<rect width="30" height="20" fill="#de2910"/><polygon points="' + star(5.5, 5.2, 3.3) + '" fill="#ffde00"/>' + [[11, 1.8, -20], [13, 4, 10], [13, 7, -20], [11, 9.2, 5]].map((p) => '<polygon points="' + star(p[0], p[1], 1, p[2] - 90) + '" fill="#ffde00"/>').join('')),
+  'zh-Hant': flag('zh-Hant', '<rect width="30" height="20" fill="#fe0000"/><rect width="15" height="10" fill="#000095"/><circle cx="7.5" cy="5" r="3.7" fill="#fff"/><circle cx="7.5" cy="5" r="3" fill="#000095"/><circle cx="7.5" cy="5" r="2.3" fill="#fff"/>'),
+  'zh-Hans': flag('zh-Hans', '<rect width="30" height="20" fill="#de2910"/><polygon points="' + star(5.5, 5.2, 3.3) + '" fill="#ffde00"/>' + [[11, 1.8, -20], [13, 4, 10], [13, 7, -20], [11, 9.2, 5]].map((p) => '<polygon points="' + star(p[0], p[1], 1, p[2] - 90) + '" fill="#ffde00"/>').join('')),
   ja: flag('ja', '<rect width="30" height="20" fill="#fff"/><circle cx="15" cy="10" r="6" fill="#bc002d"/>'),
   ko: flag('ko', '<rect width="30" height="20" fill="#fff"/><path d="M10 10a5 5 0 0 1 10 0z" fill="#cd2e3a"/><path d="M10 10a5 5 0 0 0 10 0z" fill="#0047a0"/><circle cx="12.5" cy="10" r="2.5" fill="#0047a0"/><circle cx="17.5" cy="10" r="2.5" fill="#cd2e3a"/>' + trig(4.2, 4, -35) + trig(25.8, 16, -35) + trig(25.8, 4, 35) + trig(4.2, 16, 35)),
 };
@@ -279,7 +279,7 @@ const IC_CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6L8.59
 // static texts carry data-t; they are re-translated whenever the language changes
 document.querySelectorAll('[data-t]').forEach((e) => { e.dataset.zh = e.textContent; });
 function applyLang() {
-  document.documentElement.lang = { zh: 'zh-Hant', zhs: 'zh-Hans', en: 'en', ja: 'ja', ko: 'ko' }[LANG];
+  document.documentElement.lang = LANG;
   document.querySelectorAll('[data-t]').forEach((e) => { e.textContent = t(e.dataset.zh); });
   document.title = t('Wishbook | Sync');
   $('set').setAttribute('aria-label', t('Settings'));

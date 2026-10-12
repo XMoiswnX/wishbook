@@ -40,7 +40,8 @@ UA = 'Mozilla/5.0 wishbook-sync'
 HOME = os.path.expanduser('~')
 LOCALLOW = os.path.join(HOME, 'AppData', 'LocalLow')
 
-LANGS = ('en', 'zh', 'zhs', 'ja', 'ko')
+LANGS = ('en', 'zh-Hant', 'zh-Hans', 'ja', 'ko')
+LEGACY_LANGS = {'zh': 'zh-Hant', 'zhs': 'zh-Hans'}  # codes saved by earlier versions
 LANG = 'en'  # the messages this program writes itself (the page translates its own texts); English is the source language of every text
 
 
@@ -53,7 +54,7 @@ def system_lang():
         return 'en'
     primary = lid & 0x3FF
     if primary == 0x04:  # Chinese: Taiwan, Hong Kong and Macao use traditional characters
-        return 'zh' if lid in (0x0404, 0x0C04, 0x1404) else 'zhs'
+        return 'zh-Hant' if lid in (0x0404, 0x0C04, 0x1404) else 'zh-Hans'
     return {0x11: 'ja', 0x12: 'ko'}.get(primary, 'en')
 MSG = PROGRAM_TEXT  # {lang: {zh source text: translation}}; the texts live in locales/program/*.json and are baked into locale_data.py by tools/build_locales.py
 
@@ -128,7 +129,7 @@ class Reporter:
         """Called from the page: change the language / auto-update switch and keep it in config.json."""
         global LANG
         with self.lock:
-            if patch.get('lang') in ('zh', 'zhs', 'en', 'ja', 'ko'):
+            if patch.get('lang') in LANGS:
                 LANG = self.cfg['lang'] = patch['lang']
             if isinstance(patch.get('autoUpdate'), bool):
                 self.cfg['autoUpdate'] = patch['autoUpdate']
@@ -818,6 +819,7 @@ def run(args, reporter):
             cfg = json.load(f)
     cfg.setdefault('server', DEFAULT_SERVER)
     global LANG
+    cfg['lang'] = LEGACY_LANGS.get(cfg.get('lang'), cfg.get('lang'))
     LANG = cfg['lang'] if cfg.get('lang') in LANGS else system_lang()
     reporter.cfg = cfg
     reporter.state['settings'] = {'lang': LANG, 'autoUpdate': bool(cfg.get('autoUpdate'))}

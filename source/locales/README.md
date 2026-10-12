@@ -1,16 +1,25 @@
 # Translations
 
-`program/<lang>.json` holds the texts of the sync program. The key is the **English source text** (it is also what the code looks up, and what is shown when a translation is missing); the value is the translation.
+The sync program's texts live in `program/<lang>.json`. Each file is a flat JSON object: the key is the source text (the Traditional Chinese text the program is written with), the value is the translation.
 
-| file | language |
-|---|---|
-| `zh.json` | Traditional Chinese |
-| `zhs.json` | Simplified Chinese |
-| `ja.json` | Japanese |
-| `ko.json` | Korean |
+```
+program/
+  zh-Hant.json  Traditional Chinese
+  zh-Hans.json  Simplified Chinese
+  ja.json       Japanese
+  ko.json       Korean
+```
 
-- Keep placeholders such as `{n}` or `{name}` exactly as they are.
-- Change only the value, never the key.
-- After editing, run `python tools/build_locales.py` (writes `sync/locale_data.py`), then rebuild the exe (see `BUILD.md`).
-- To add a language: add `<lang>.json` with the keys of `zh.json`, then add the code to `LANGS` in `tools/build_locales.py`, `sync/wishbook_sync.py` and the language menu in `sync/ui_page.py`.
-- Pull requests with translation fixes are welcome.
+Language codes follow BCP 47 (`zh-Hant`, `zh-Hans`, `ja`, `ko`; `en` is the built-in English text).
+
+- Keep placeholders such as `{n}` or `{name}` exactly as they are; change only the value, never the key.
+- `tools/build_locales.py` bakes the files into `sync/locale_data.py`, so the exe stays a single file.
+
+## Changing a text
+
+1. Edit the value in `program/<lang>.json`.
+2. Run `python tools/build_locales.py`, then rebuild the exe (see `../BUILD.md`).
+
+## Adding a language
+
+Add `<lang>.json` with every key of the existing files, then add the code to `tools/build_locales.py`, to `LANGS` in `sync/wishbook_sync.py` and to the language menu in `sync/ui_page.py`.

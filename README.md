@@ -26,7 +26,7 @@ The page font is jf-openhuninn (justfont, SIL OFL 1.1).
 SHA-256 of `wishbook.exe` 0.2.0:
 
 ```
-595018ecc45eff81774582379f521e3e2c4a0cf7cb72fdeaf7662c72b5fb509b
+1d18c4a78bf38dd3f05eb5a46de6e46dfb233dcfaa1fa6c2028dbdcd958a5c36
 ```
 
 PowerShell: `Get-FileHash .\wishbook.exe -Algorithm SHA256`

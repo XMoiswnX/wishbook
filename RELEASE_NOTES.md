@@ -2,4 +2,4 @@
 
 First official release (compiled with Nuitka).
 
-SHA-256: 595018ecc45eff81774582379f521e3e2c4a0cf7cb72fdeaf7662c72b5fb509b
+SHA-256: 1d18c4a78bf38dd3f05eb5a46de6e46dfb233dcfaa1fa6c2028dbdcd958a5c36
