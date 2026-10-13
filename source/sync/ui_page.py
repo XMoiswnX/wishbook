@@ -71,7 +71,7 @@ svg{display:block}
 .gi img{width:3.25rem;height:3.25rem;border-radius:.9375rem;display:block}
 .gi:hover{transform:translateY(-.3125rem) scale(1.1)}
 .dock{position:relative}
-.dock .pt{position:absolute;bottom:.25rem;width:.375rem;height:.375rem;margin-left:-.1875rem;border-radius:50%;background:var(--acc);pointer-events:none;transition:left .55s cubic-bezier(.3,1.45,.4,1)}
+.dock .pt{position:absolute;bottom:.25rem;width:.375rem;height:.375rem;margin-left:-.1875rem;border-radius:50%;background:var(--acc);pointer-events:none;transition:left .5s cubic-bezier(.45,0,.3,1)}
 .gi .bd{position:absolute;right:-.125rem;top:-.125rem;width:.875rem;height:.875rem;border-radius:50%;border:.15625rem solid var(--card);background:var(--acc)}
 .gi .bd.ok{background:var(--good)}.gi .bd.bad{background:var(--bad)}.gi .bd.q{background:var(--muted)}
 .gi .bd.run{animation:pulse 1.4s ease-in-out infinite}
@@ -297,7 +297,7 @@ const fl = (c) => '<span class="fl">' + (FLAGS[c] || '') + '</span>';
 // ---------------- state of this page ----------------
 let S = null;             // the last state the program sent
 let sel = null, picked = false, swapKey = null, shownKey = null;  // the game on show; picked: the user chose one, so stop following the one that is syncing
-let dotLeft = null, dotIdx = -1;  // where the dock's dot is (px), and which game it is under
+let dotLeft = null;  // where the dock's dot is (px) after its last move
 let sheet = false, langOpen = false, fold_ = {}, modal = null, lastModal = '', copied = false, restarting = false;
 let lastCheck = 0, pendingCheck = 0, promptedStartup = false, localSettingsAt = 0, errShown = '';
 const poolWas = {};      // game|pool -> {st, at}: its status and when it turned from running into a result (a mark is only drawn then)
@@ -390,7 +390,7 @@ function mainBody(s) {
     + '<div class="pools' + ((g.pools || []).length > 4 ? ' many' : '') + '">' + pools + '</div>'
     + '<button class="btn" data-act="sync" data-k="' + g.key + '" ' + (run || !idle ? 'disabled' : '') + ' ' + (canAsk ? '' : 'hidden') + '>' + IC.redo + esc(label) + '</button></div></div>';
   const ft = '<div class="ft" data-key="ft"><button class="btn alt" data-act="all" ' + (idle ? '' : 'disabled') + '>' + IC.redo + esc(t('Update all')) + '</button><a class="btn" href="' + esc(s.site || '#') + '" target="_blank" rel="noopener">' + esc(t('Open stats site')) + IC.arr + '</a></div>';
-  return '<div class="dock" data-key="dock">' + dock + '<i class="pt" style="left:' + (dotLeft === null ? 0 : dotLeft) + 'px"></i></div>' + hero + ft;
+  return '<div class="dock" data-key="dock">' + dock + '<i class="pt" data-key="pt" data-keep></i></div>' + hero + ft;
 }
 
 function settings(s) {
@@ -467,23 +467,25 @@ function morph(dst, src) {
     if (o.nodeType !== n.nodeType || o.nodeName !== n.nodeName || (n.nodeType === 1 && o.getAttribute('data-key') !== n.getAttribute('data-key'))) { dst.replaceChild(n.cloneNode(true), o); return; }
     if (n.nodeType === 3) { if (o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue; return; }
     if (n.nodeType !== 1) return;
+    if (n.hasAttribute('data-keep')) return;
     for (const at of [...o.attributes]) if (!n.hasAttribute(at.name)) o.removeAttribute(at.name);
     for (const at of [...n.attributes]) if (o.getAttribute(at.name) !== at.value) o.setAttribute(at.name, at.value);
     morph(o, n);
   });
   for (let i = a.length - 1; i >= b.length; i--) dst.removeChild(a[i]);
 }
-function placeDot() {
+function placeDot() {  // one dot under the game on show; when the game changes it swings over to it along an arc below the icons
   const dock = document.querySelector('.dock'); if (!dock) return;
   const on = dock.querySelector('.gi.on'), pt = dock.querySelector('.pt'); if (!on || !pt) return;
-  const left = on.offsetLeft + on.offsetWidth / 2, idx = [...dock.querySelectorAll('.gi')].indexOf(on);
-  if (dotLeft === null) {  // first time: put it there without travelling
+  const left = on.offsetLeft + on.offsetWidth / 2;
+  if (dotLeft === null || !pt.style.left) {  // first time (or a new dock): put it there without travelling
     pt.style.transition = 'none'; pt.style.left = left + 'px'; void pt.offsetWidth; pt.style.transition = '';
-  } else if (Math.abs(left - parseFloat(pt.style.left)) > 0.5) {
-    void pt.offsetWidth; pt.style.left = left + 'px';
-    if (idx !== dotIdx && dotIdx !== -1) on.animate([{ transform: 'none' }, { transform: 'translateY(-0.3rem)' }, { transform: 'none' }], { duration: 420, delay: 300, easing: 'cubic-bezier(.3,.6,.4,1)' });
+  } else if (Math.abs(left - dotLeft) > 0.5) {
+    void pt.offsetWidth;
+    pt.style.left = left + 'px';
+    pt.animate([{ transform: 'translateY(0)' }, { transform: 'translateY(0.3rem)' }, { transform: 'translateY(0)' }], { duration: 500, easing: 'cubic-bezier(.45,0,.3,1)' });
   }
-  dotLeft = left; dotIdx = idx;
+  dotLeft = left;
 }
 function fadeEdges() {
   const b = document.querySelector('.sheet .scroll'); if (!b) return;
