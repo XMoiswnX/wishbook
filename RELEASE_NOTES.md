@@ -1,6 +1,5 @@
-# Wishbook 0.3.2
+# Wishbook 0.3.3
 
-- Check marks and crosses of a pool are drawn when it finishes
-- Genshin Impact records are accepted again (its history has no item ids)
+- The dot under the game icons springs to the game that is on show, and that icon nods when the dot arrives
 
-SHA-256: 62aaafc7da223c9194a94047d7221042fb8612458cbcaabf3bdcbd93f7ae5159
+SHA-256: 375c3c7d7f31e50becf50ebf47dbd17535bcbe2f455c612cac2b45999fbe5661

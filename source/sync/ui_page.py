@@ -70,7 +70,8 @@ svg{display:block}
 .gi{position:relative;border:0;background:transparent;padding:.1875rem;border-radius:1.125rem;transition:transform .25s cubic-bezier(.22,1.3,.36,1);animation:pop .45s cubic-bezier(.22,1.3,.36,1) backwards}
 .gi img{width:3.25rem;height:3.25rem;border-radius:.9375rem;display:block}
 .gi:hover{transform:translateY(-.3125rem) scale(1.1)}
-.gi.on::after{content:"";position:absolute;left:50%;bottom:-.25rem;width:.375rem;height:.375rem;margin-left:-.1875rem;border-radius:50%;background:var(--acc)}
+.dock{position:relative}
+.dock .pt{position:absolute;bottom:.25rem;width:.375rem;height:.375rem;margin-left:-.1875rem;border-radius:50%;background:var(--acc);pointer-events:none;transition:left .55s cubic-bezier(.3,1.45,.4,1)}
 .gi .bd{position:absolute;right:-.125rem;top:-.125rem;width:.875rem;height:.875rem;border-radius:50%;border:.15625rem solid var(--card);background:var(--acc)}
 .gi .bd.ok{background:var(--good)}.gi .bd.bad{background:var(--bad)}.gi .bd.q{background:var(--muted)}
 .gi .bd.run{animation:pulse 1.4s ease-in-out infinite}
@@ -296,6 +297,7 @@ const fl = (c) => '<span class="fl">' + (FLAGS[c] || '') + '</span>';
 // ---------------- state of this page ----------------
 let S = null;             // the last state the program sent
 let sel = null, picked = false, swapKey = null, shownKey = null;  // the game on show; picked: the user chose one, so stop following the one that is syncing
+let dotLeft = null, dotIdx = -1;  // where the dock's dot is (px), and which game it is under
 let sheet = false, langOpen = false, fold_ = {}, modal = null, lastModal = '', copied = false, restarting = false;
 let lastCheck = 0, pendingCheck = 0, promptedStartup = false, localSettingsAt = 0, errShown = '';
 const poolWas = {};      // game|pool -> {st, at}: its status and when it turned from running into a result (a mark is only drawn then)
@@ -388,7 +390,7 @@ function mainBody(s) {
     + '<div class="pools' + ((g.pools || []).length > 4 ? ' many' : '') + '">' + pools + '</div>'
     + '<button class="btn" data-act="sync" data-k="' + g.key + '" ' + (run || !idle ? 'disabled' : '') + ' ' + (canAsk ? '' : 'hidden') + '>' + IC.redo + esc(label) + '</button></div></div>';
   const ft = '<div class="ft" data-key="ft"><button class="btn alt" data-act="all" ' + (idle ? '' : 'disabled') + '>' + IC.redo + esc(t('Update all')) + '</button><a class="btn" href="' + esc(s.site || '#') + '" target="_blank" rel="noopener">' + esc(t('Open stats site')) + IC.arr + '</a></div>';
-  return '<div class="dock" data-key="dock">' + dock + '</div>' + hero + ft;
+  return '<div class="dock" data-key="dock">' + dock + '<i class="pt" style="left:' + (dotLeft === null ? 0 : dotLeft) + 'px"></i></div>' + hero + ft;
 }
 
 function settings(s) {
@@ -471,6 +473,18 @@ function morph(dst, src) {
   });
   for (let i = a.length - 1; i >= b.length; i--) dst.removeChild(a[i]);
 }
+function placeDot() {
+  const dock = document.querySelector('.dock'); if (!dock) return;
+  const on = dock.querySelector('.gi.on'), pt = dock.querySelector('.pt'); if (!on || !pt) return;
+  const left = on.offsetLeft + on.offsetWidth / 2, idx = [...dock.querySelectorAll('.gi')].indexOf(on);
+  if (dotLeft === null) {  // first time: put it there without travelling
+    pt.style.transition = 'none'; pt.style.left = left + 'px'; void pt.offsetWidth; pt.style.transition = '';
+  } else if (Math.abs(left - parseFloat(pt.style.left)) > 0.5) {
+    void pt.offsetWidth; pt.style.left = left + 'px';
+    if (idx !== dotIdx && dotIdx !== -1) on.animate([{ transform: 'none' }, { transform: 'translateY(-0.3rem)' }, { transform: 'none' }], { duration: 420, delay: 300, easing: 'cubic-bezier(.3,.6,.4,1)' });
+  }
+  dotLeft = left; dotIdx = idx;
+}
 function fadeEdges() {
   const b = document.querySelector('.sheet .scroll'); if (!b) return;
   b.classList.toggle('fade-t', b.scrollTop > 2);
@@ -511,6 +525,7 @@ function render() {
     + '<div class="layer ' + (modal ? 'on' : '') + '" data-key="lmodal"><div class="scrim" data-act="close"></div>' + modalHtml(s) + '</div>';
   const tmp = document.createElement('div'); tmp.innerHTML = html;
   morph($('win'), tmp);
+  placeDot();
   const tl = document.createElement('div'); tl.innerHTML = layers;
   morph($('layers'), tl);
   fadeEdges();
