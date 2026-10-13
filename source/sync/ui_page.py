@@ -86,8 +86,15 @@ svg{display:block}
 .pools.many{grid-template-columns:1fr 1fr}  /* seven pools (Wuthering Waves) go two by two so they still fit */
 .pools.many .pl{gap:.5rem;padding:.4375rem .625rem}
 .pl{display:grid;grid-template-columns:1.375rem 1fr auto;gap:.625rem;align-items:center;background:var(--card);border-radius:.875rem;padding:.4375rem .75rem}
-.pl .d{width:1.375rem;height:1.375rem;border-radius:.5rem;display:grid;place-items:center;background:var(--track);color:var(--muted)}
-.pl .d svg{width:.8125rem;height:.8125rem}
+.pl .d{position:relative;width:1.375rem;height:1.375rem;border-radius:.5rem;display:grid;place-items:center;background:var(--track);color:var(--muted);transition:background .25s}
+.pl .d svg{position:absolute;width:.8125rem;height:.8125rem;opacity:0}
+.pl .d .sp{transition:opacity .12s}
+.pl.run .d .sp{opacity:1;animation:spin .9s linear infinite}
+/* a finished mark is drawn with one stroke; it only plays when the pool was just seen running (class "done"), later drawings show it as it is */
+.pl .d path{stroke-dasharray:1;stroke-dashoffset:1}
+.pl.ok .d .ck,.pl.bad .d .xx{opacity:1}
+.pl.ok .d .ck path,.pl.bad .d .xx path{stroke-dashoffset:0}
+.pl.done.ok .d .ck path,.pl.done.bad .d .xx path{animation:draw .38s .1s ease-out backwards}
 .pl.ok .d{background:var(--good);color:var(--on-good)}
 .pl.run .d{background:var(--acc);color:var(--on-acc)}
 .pl.bad .d{background:var(--bad);color:var(--on-bad)}
@@ -223,6 +230,7 @@ svg{display:block}
 @keyframes swap{from{transform:scale(.9)}to{transform:none}}
 @keyframes turn{to{transform:rotate(360deg)}}
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
 @keyframes nudge{0%,100%{transform:none}40%{transform:translateX(2.5px)}70%{transform:translateX(-.5px)}}
 @keyframes blink{50%{transform:scale(.88)}}
 @keyframes pulse{50%{transform:scale(.8)}}
@@ -290,6 +298,7 @@ let S = null;             // the last state the program sent
 let sel = null, picked = false, swapKey = null, shownKey = null;  // the game on show; picked: the user chose one, so stop following the one that is syncing
 let sheet = false, langOpen = false, fold_ = {}, modal = null, lastModal = '', copied = false, restarting = false;
 let lastCheck = 0, pendingCheck = 0, promptedStartup = false, localSettingsAt = 0, errShown = '';
+const poolWas = {};      // game|pool -> {st, at}: its status and when it turned from running into a result (a mark is only drawn then)
 const badShown = {};     // game -> the failure text whose popup was already opened
 let mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 document.documentElement.dataset.mode = mode;
@@ -364,8 +373,12 @@ function mainBody(s) {
     else if (st === 'run') c = g.page ? t('Page {n}', { n: g.page }) : t('Syncing');
     else if (st === 'bad') c = t('Failed');
     else c = (e === 'run' || e === 'bad') ? t('Not started') : t('Not updated');
-    const mark = st === 'ok' ? IC.ck : st === 'bad' ? IC.x : st === 'run' ? IC.redo : '';
-    return '<div class="pl ' + st + '"><span class="d">' + mark + '</span><span class="n" title="' + esc(t(p.label)) + '">' + esc(t(p.label)) + '</span><span class="c">' + esc(c) + '</span></div>';
+    const key = g.key + '|' + p.label, now = Date.now();
+    if ((st === 'ok' || st === 'bad') && poolWas[key] && poolWas[key].st === 'run') poolWas[key] = { st, at: now };
+    else if (!poolWas[key] || poolWas[key].st !== st) poolWas[key] = { st, at: 0 };
+    const done = poolWas[key].at && now - poolWas[key].at < 900;
+    const mark = SV('sp', '<path d="M20 12a8 8 0 1 0-2.3 5.7M20 6v6h-6"/>') + SV('ck', '<path pathLength="1" d="M5 12.5l4.5 4.5L19 7.5"/>', 2.8) + SV('xx', '<path pathLength="1" d="M7 7l10 10"/><path pathLength="1" d="M17 7L7 17"/>', 2.8);
+    return '<div class="pl ' + st + (done ? ' done' : '') + '"><span class="d">' + mark + '</span><span class="n" title="' + esc(t(p.label)) + '">' + esc(t(p.label)) + '</span><span class="c">' + esc(c) + '</span></div>';
   }).join('');
   const chip = e === 'wait' ? '' : (e === 'bad' ? '<button class="chip bad" data-act="fail" data-k="' + g.key + '">' + IC.x + esc(t('Failed')) + '</button>'
     : '<span class="chip ' + e + '">' + (e === 'ok' ? IC.ck : '') + esc(e === 'q' ? t('Queued') : t(LABEL[e] || LABEL.wait)) + '</span>');

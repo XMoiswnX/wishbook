@@ -28,7 +28,7 @@ from ui_page import PAGE as PAGE_TEMPLATE
 PAGE = (PAGE_TEMPLATE.replace('{{ICON}}', ICON).replace('{{GAME_ICONS}}', json.dumps(GAME_ICONS))
         .replace('{{I18N}}', json.dumps(PROGRAM_TEXT, ensure_ascii=False).replace('</', '<\\/')))
 
-VERSION = '0.3.1'  # bumped by tools/release.py, which also writes site/version.json
+VERSION = '0.3.2'  # bumped by tools/release.py, which also writes site/version.json
 FROZEN = bool(getattr(sys, 'frozen', False))
 EXE = sys.executable if FROZEN else None
 HERE = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))

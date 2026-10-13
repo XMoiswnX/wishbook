@@ -1,7 +1,6 @@
-# Wishbook 0.3.1
+# Wishbook 0.3.2
 
-- Settings open as a centered dialog above the window, like the website's account window
-- The window and its text are larger on big screens
-- Fix the hover shape of the expandable rows in settings
+- Check marks and crosses of a pool are drawn when it finishes
+- Genshin Impact records are accepted again (its history has no item ids)
 
-SHA-256: b902932d310ff536bee2069838ffa02a20014b7115d2b8f2501e726bb97592e3
+SHA-256: 62aaafc7da223c9194a94047d7221042fb8612458cbcaabf3bdcbd93f7ae5159
