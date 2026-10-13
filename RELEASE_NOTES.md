@@ -1,5 +1,5 @@
-# Wishbook 0.3.5
+# Wishbook 0.3.6
 
-- Closing the page ends the program right away (it used to wait 20 seconds)
+- Shows your account picture next to your name (top bar and settings)
 
-SHA-256: 7047e08cf6651839291aee262ab32a1d62f7f6bc9faf3747d75edeac41dbf495
+SHA-256: e70baffbb0ebb4a1d246635a2b1410925ad85ab8efcb4700a8d5ac8327d306ac

@@ -28,7 +28,8 @@ svg{display:block}
 .hd .tt{min-width:0;flex:1}
 .hd .tt b{display:block;font-weight:400;font-size:1.125rem;line-height:1.2}
 .who{display:flex;align-items:center;gap:.5rem;padding:.25rem .625rem .25rem .25rem;border-radius:62rem;background:var(--card2);font-size:.8125rem;color:var(--muted);max-width:9rem}
-.who i{width:1.5rem;height:1.5rem;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-style:normal;font-size:.75rem;flex:none}
+.who i{position:relative;width:1.5rem;height:1.5rem;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-style:normal;font-size:.75rem;flex:none;overflow:hidden}
+.who i img,.shd .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;background:var(--acc)}
 .who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ib{position:relative;width:2.375rem;height:2.375rem;border:0;border-radius:.75rem;background:var(--card2);color:var(--muted);display:grid;place-items:center;flex:none;transition:background .2s,color .2s,transform .2s}
 .ib:hover{background:var(--hover);color:var(--text)}
@@ -132,7 +133,7 @@ svg{display:block}
 .sheet{position:relative;width:min(36rem,100%);height:min(42rem,100%);background:var(--card);border-radius:1.75rem;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;opacity:0;transform:translateY(.75rem) scale(.97);transition:transform .24s cubic-bezier(.4,0,.2,1),opacity .24s cubic-bezier(.4,0,.2,1)}
 .layer.on .sheet{opacity:1;transform:none;animation:spring .5s cubic-bezier(.3,.6,.4,1)}
 .shd{display:flex;align-items:center;gap:.75rem;padding:1.125rem 1.25rem .875rem}
-.shd .av{width:2.75rem;height:2.75rem;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-size:1.125rem;flex:none}
+.shd .av{position:relative;overflow:hidden;width:2.75rem;height:2.75rem;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-size:1.125rem;flex:none}
 .shd .ltx{flex:1;min-width:0}
 .shd .ltx b{display:block;font-weight:400;font-size:1.125rem;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .shd .ltx small{display:block;color:var(--muted);font-size:.8125rem}
@@ -340,11 +341,13 @@ function langItems() {
 }
 const iconUrl = () => document.querySelector('link[rel=icon]').href;
 
+// the signed-in account's picture over its first letter; a picture that cannot load is dropped and the letter shows
+const pic = (s) => (s.avatar ? '<img src="' + esc(s.avatar) + '" alt="" referrerpolicy="no-referrer" onerror="this.remove()">' : '');
 function header(s) {
   const signed = !!s.member && !(s.login && s.login.needed);
   const nw = s.version && s.version.newer;
   return '<div class="hd"><img class="lg" src="' + esc(iconUrl()) + '" alt=""><div class="tt"><b>' + esc(t('Wishbook')) + '</b></div>'
-    + (signed ? '<div class="who"><i>' + esc((s.member || '?').slice(0, 1).toUpperCase()) + '</i><span>' + esc(s.member) + '</span></div>' : '')
+    + (signed ? '<div class="who"><i>' + esc((s.member || '?').slice(0, 1).toUpperCase()) + pic(s) + '</i><span>' + esc(s.member) + '</span></div>' : '')
     + '<button class="ib" data-act="sheet" aria-label="' + esc(t('Settings')) + '" title="' + esc(nw ? t('New version V{v} (open for details)', { v: s.version.latest }) : t('Settings')) + '">' + IC.gear + (nw ? '<span class="nw">NEW</span>' : '') + '</button></div>';
 }
 
@@ -419,7 +422,7 @@ function settings(s) {
     'The first time, choose how to sign in, sign in on the page that opens, then enter the code shown in this window. You will stay signed in afterwards.',
     'When it is done, open the stats site to see the result. Closing this tab ends the program.'];
   const head = signed
-    ? '<span class="av">' + esc((s.member || '?').slice(0, 1).toUpperCase()) + '</span><div class="ltx"><b>' + esc(s.member) + '</b><small>' + esc(t('Signed in')) + '</small></div><button class="btn sm ghost" data-act="logout" ' + (s.phase === 'idle' ? '' : 'disabled') + '>' + IC.out + esc(t('Sign out')) + '</button>'
+    ? '<span class="av">' + esc((s.member || '?').slice(0, 1).toUpperCase()) + pic(s) + '</span><div class="ltx"><b>' + esc(s.member) + '</b><small>' + esc(t('Signed in')) + '</small></div><button class="btn sm ghost" data-act="logout" ' + (s.phase === 'idle' ? '' : 'disabled') + '>' + IC.out + esc(t('Sign out')) + '</button>'
     : '<div class="ltx"><b>' + esc(t('Settings')) + '</b></div>';
   return '<div class="sheet"><div class="shd">' + head + '<button class="ib close" data-act="sheet" aria-label="' + esc(t('Close')) + '">' + IC.x + '</button></div><div class="scroll">'
     + '<section>' + gh('sliders', esc(t('General'))) + '<div class="gc">'

@@ -28,7 +28,7 @@ from ui_page import PAGE as PAGE_TEMPLATE
 PAGE = (PAGE_TEMPLATE.replace('{{ICON}}', ICON).replace('{{GAME_ICONS}}', json.dumps(GAME_ICONS))
         .replace('{{I18N}}', json.dumps(PROGRAM_TEXT, ensure_ascii=False).replace('</', '<\\/')))
 
-VERSION = '0.3.5'  # bumped by tools/release.py, which also writes site/version.json
+VERSION = '0.3.6'  # bumped by tools/release.py, which also writes site/version.json
 FROZEN = bool(getattr(sys, 'frozen', False))
 EXE = sys.executable if FROZEN else None
 HERE = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
@@ -112,7 +112,7 @@ class Reporter:
     def __init__(self, games):
         self.lock = threading.Lock()
         self.state = {
-            'phase': 'running', 'member': '', 'notice': '', 'site': '', 'restarting': False,
+            'phase': 'running', 'member': '', 'avatar': '', 'notice': '', 'site': '', 'restarting': False,
             'login': {'needed': False, 'waiting': False, 'providers': [], 'error': '', 'code': ''},
             'settings': {'lang': LANG, 'autoUpdate': False, 'theme': ''},
             'version': {'current': VERSION, 'latest': None, 'newer': False, 'note': '', 'url': '', 'sha256': '', 'checking': False, 'canUpdate': FROZEN, 'error': '', 'history': [], 'size': 0},
@@ -168,12 +168,14 @@ class Reporter:
         with self.lock:
             self.state['login'].update(needed=True, waiting=False, providers=providers, error='', code='')
             self.state['member'] = ''
+            self.state['avatar'] = ''
         self.phase('idle')
 
     def logged_in(self, name):
         with self.lock:
             self.state['login'].update(needed=False, waiting=False, error='', code='')
             self.state['member'] = name or ''
+            self.state['avatar'] = safe_avatar((self.cfg or {}).get('avatar'))
         self.phase('idle')
 
     def logout(self):
@@ -183,6 +185,7 @@ class Reporter:
                 return
             self.cfg.pop('token', None)
             self.cfg.pop('name', None)
+            self.cfg.pop('avatar', None)
         try:
             save_config(self.cfg)
         except OSError:
@@ -193,6 +196,7 @@ class Reporter:
             with self.lock:
                 self.state['login'].update(needed=True, waiting=False, providers=[], error=tr('Connection failed: {e}', e=e), code='')
                 self.state['member'] = ''
+                self.state['avatar'] = ''
             self.phase('idle')
 
     def request_login(self, provider):
@@ -225,6 +229,7 @@ class Reporter:
     def member(self, name):
         with self.lock:
             self.state['member'] = name or ''
+            self.state['avatar'] = safe_avatar((self.cfg or {}).get('avatar'))
 
     def game(self, key, status=None, detail=None, progress='keep', **extra):
         """extra: pool (label being read), page, pools (per pool: label, status, n), added, last; they are copied into the game as they are."""
@@ -644,6 +649,10 @@ def provider_login(cfg, reporter, provider):
             cfg['token'] = r['token']
             cfg['name'] = r.get('name') or ''
             save_config(cfg)
+            try:
+                check_session(cfg)  # also brings the account's avatar
+            except (urllib.error.URLError, OSError, ValueError):
+                pass
             reporter.logged_in(cfg['name'])
             return
         if r['status'] == 'error':
@@ -654,21 +663,27 @@ def provider_login(cfg, reporter, provider):
     raise Failure(tr('Login timed out. Please run it again.'))
 
 
+def safe_avatar(url):
+    """The account's avatar address, only when it is a plain https link (the page puts it into an <img>)."""
+    return url if isinstance(url, str) and url.startswith('https://') and len(url) < 600 and ' ' not in url and '"' not in url else ''
+
+
 def check_session(cfg):
-    """The signed-in account's name when the saved token still works, else None (the token is dropped)."""
+    """The signed-in account's name when the saved token still works, else None (the token is dropped). The avatar is kept in cfg as well."""
     if not cfg.get('token'):
         return None
     req = urllib.request.Request(cfg['server'].rstrip('/') + '/api/me', headers={'Authorization': 'Bearer ' + cfg['token'], 'User-Agent': UA})
     try:
-        name = json.loads(urllib.request.urlopen(req, timeout=20).read().decode()).get('name') or ''
+        me = json.loads(urllib.request.urlopen(req, timeout=20).read().decode())
+        name, avatar = me.get('name') or '', safe_avatar(me.get('avatar'))
     except urllib.error.HTTPError as e:
         if e.code != 401:
             raise
         cfg.pop('token', None)
         save_config(cfg)
         return None
-    if cfg.get('name') != name:
-        cfg['name'] = name
+    if cfg.get('name') != name or cfg.get('avatar', '') != avatar:
+        cfg['name'], cfg['avatar'] = name, avatar
         save_config(cfg)
     return name
 
