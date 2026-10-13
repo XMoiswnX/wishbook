@@ -590,6 +590,11 @@ async function tick() {
   setTimeout(tick, 700);
 }
 document.title = t('Wishbook | Sync');
+// closing the tab ends the program straight away; a reload polls again within a second and keeps it alive
+addEventListener('pagehide', (e) => {
+  if (e.persisted || restarting) return;
+  try { fetch('/bye', { method: 'POST', headers: { 'X-Wishbook': '1' }, keepalive: true }); } catch (err) { /* the 20 second rule still ends it */ }
+});
 tick();
 </script>
 """

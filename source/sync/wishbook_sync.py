@@ -28,7 +28,7 @@ from ui_page import PAGE as PAGE_TEMPLATE
 PAGE = (PAGE_TEMPLATE.replace('{{ICON}}', ICON).replace('{{GAME_ICONS}}', json.dumps(GAME_ICONS))
         .replace('{{I18N}}', json.dumps(PROGRAM_TEXT, ensure_ascii=False).replace('</', '<\\/')))
 
-VERSION = '0.3.4'  # bumped by tools/release.py, which also writes site/version.json
+VERSION = '0.3.5'  # bumped by tools/release.py, which also writes site/version.json
 FROZEN = bool(getattr(sys, 'frozen', False))
 EXE = sys.executable if FROZEN else None
 HERE = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
@@ -120,6 +120,7 @@ class Reporter:
                        'pools': [{'label': label, 'status': 'wait', 'n': 0} for label in POOL_LABELS[g].values()]} for g in games],
         }
         self.last_poll = 0.0
+        self.bye_at = 0.0  # the page said it is being closed (a reload says the same, but polls again within a second)
         self.polled = False
         self.jobs = queue.Queue()
         self.pending = set()  # games asked for and not finished yet
@@ -213,6 +214,7 @@ class Reporter:
         with self.lock:
             self.last_poll = time.time()
             self.polled = True
+            self.bye_at = 0.0
             return json.dumps(self.state, ensure_ascii=False)
 
     def phase(self, phase, notice=''):
@@ -256,7 +258,7 @@ def serve_ui(reporter, port):
 
         def do_POST(self):
             path = self.path.split('?')[0]
-            if path not in ('/sync', '/check', '/update', '/settings', '/login', '/logout') or self.headers.get('X-Wishbook') != '1':
+            if path not in ('/sync', '/check', '/update', '/settings', '/login', '/logout', '/bye') or self.headers.get('X-Wishbook') != '1':
                 self.send_response(403)
                 self.end_headers()
                 return
@@ -278,6 +280,13 @@ def serve_ui(reporter, port):
                     body = {}
                 if isinstance(body, dict):
                     reporter.request_login(str(body.get('provider') or ''))
+                self.send_response(200)
+                self.send_header('Content-Length', '2')
+                self.end_headers()
+                self.wfile.write(b'ok')
+                return
+            if path == '/bye':
+                reporter.bye_at = time.time()
                 self.send_response(200)
                 self.send_header('Content-Length', '2')
                 self.end_headers()
@@ -808,7 +817,8 @@ def interactive(cfg, args, reporter):
                     auto_done = True
                     if v['newer'] and v['canUpdate']:
                         reporter.request(['__update__'], force=True)
-            gone = reporter.polled and time.time() - reporter.last_poll > 20  # the tab was closed
+            gone = reporter.polled and (time.time() - reporter.last_poll > 20  # the tab was closed (or its computer slept)
+                                        or (reporter.bye_at and time.time() - reporter.bye_at > 2))  # the page said so and did not come back
             never = not reporter.polled and time.time() - started > 180  # the page never opened
             if gone or never:
                 return 0
