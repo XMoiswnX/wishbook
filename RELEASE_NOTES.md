@@ -1,12 +1,7 @@
-# Wishbook 0.3.0
+# Wishbook 0.3.1
 
-A new look for the sync program.
+- Settings open as a centered dialog above the window, like the website's account window
+- The window and its text are larger on big screens
+- Fix the hover shape of the expandable rows in settings
 
-- Dark mode, and the window keeps one size in every state
-- Per-pool progress while syncing (which pool is being read, and how many records each pool has)
-- Last sync time for every game, and any game can be updated again at any time
-- Failure reasons open in a popup
-- Sign out from the settings page
-- Settings regrouped (General, Updates, Help); the language picker is a drop-down
-
-SHA-256: 500e6c7d19072fbe40495ad0f93a92992e0180b4b9022980717060ad9397e8a1
+SHA-256: b902932d310ff536bee2069838ffa02a20014b7115d2b8f2501e726bb97592e3

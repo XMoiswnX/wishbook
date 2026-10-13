@@ -9,7 +9,7 @@ PAGE = r"""<!doctype html>
 <style>
 @font-face{font-family:"jf-openhuninn";src:local("jf-openhuninn-2.1"),local("jf open 粉圓 2.1"),url("https://cdn.jsdelivr.net/gh/justfont/open-huninn-font@v2.1/font/jf-openhuninn-2.1.ttf") format("truetype");font-display:swap}
 /* everything is sized in rem and the root size follows both the width and the height of the window: big screens scale it up, small ones scale it down */
-html{font-size:clamp(12px,min(.55vw + 10px,2.05vh),24px)}
+html{font-size:clamp(12px,min(2vh,1.5vw),42px)}
 :root{color-scheme:light;--bg:#e8eef6;--card:#fff;--card2:#f2f6fb;--text:#2b3f58;--muted:#8193a8;--line:#e1e8f0;--acc:#1a8cf0;--on-acc:#fff;--soft:#e3f1fe;--good:#1fa971;--on-good:#fff;--bad:#d63f6c;--on-bad:#fff;--track:#e3eaf3;--hover:#e6eef8;--scrim:rgba(30,44,64,.45);--shadow:0 .5rem 1.5rem rgba(43,63,88,.14)}
 :root[data-mode=dark]{color-scheme:dark;--bg:#0e1015;--card:#1e222b;--card2:#272c37;--text:#eceff5;--muted:#9aa3b5;--line:#313746;--acc:#6bb8ff;--on-acc:#0b1a2b;--soft:#223348;--good:#62d8a6;--on-good:#0b2a1f;--bad:#ff8aa8;--on-bad:#2a0b14;--track:#2c3340;--hover:#323949;--scrim:rgba(5,6,9,.62);--shadow:0 .5rem 1.5rem rgba(0,0,0,.5)}
 *{box-sizing:border-box}
@@ -117,12 +117,12 @@ svg{display:block}
 .warn{font-size:.8125rem;color:var(--muted);max-width:21rem}
 
 /* layers: the settings page and the popups */
-.layer{position:absolute;inset:0;display:flex;visibility:hidden;pointer-events:none;transition:visibility 0s .36s}
+.layer{position:fixed;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;padding:1rem;visibility:hidden;pointer-events:none;transition:visibility 0s .36s}
 .layer.on{visibility:visible;pointer-events:auto;transition:visibility 0s}
 .scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;transition:opacity .3s cubic-bezier(.4,0,.2,1)}
 .layer.on .scrim{opacity:1}
-.sheet{position:absolute;inset:0;background:var(--card);display:flex;flex-direction:column;transform:translateY(100%);will-change:transform;transition:transform .3s cubic-bezier(.4,0,.2,1)}
-.layer.on .sheet{transform:none;transition:transform .42s cubic-bezier(.22,1.1,.36,1)}
+.sheet{position:relative;width:min(36rem,100%);height:min(42rem,100%);background:var(--card);border-radius:1.75rem;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;opacity:0;transform:translateY(.75rem) scale(.97);transition:transform .24s cubic-bezier(.4,0,.2,1),opacity .24s cubic-bezier(.4,0,.2,1)}
+.layer.on .sheet{opacity:1;transform:none;animation:spring .5s cubic-bezier(.3,.6,.4,1)}
 .shd{display:flex;align-items:center;gap:.75rem;padding:1.125rem 1.25rem .875rem}
 .shd .av{width:2.75rem;height:2.75rem;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-size:1.125rem;flex:none}
 .shd .ltx{flex:1;min-width:0}
@@ -142,7 +142,9 @@ svg{display:block}
 .gc>.li+.li,.gc>.acc+.li,.gc>.bar+.li{box-shadow:inset 0 1px 0 var(--line)}
 .rico{width:2.375rem;height:2.375rem;border-radius:.75rem;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;flex:none}
 .rico svg{width:1.25rem;height:1.25rem;transition:transform .3s cubic-bezier(.22,1.6,.36,1)}
-.li.lf:hover{background:var(--hover)}
+.li.lf{position:relative;isolation:isolate}
+.li.lf::before{content:"";position:absolute;inset:.25rem;border-radius:1rem;background:var(--hover);opacity:0;transition:opacity .2s;z-index:-1}
+.li.lf:hover::before{opacity:1}
 .li:hover .rico .ic-globe{transform:rotate(40deg)}
 .li:hover .rico .ic-moon{transform:rotate(-18deg) scale(1.1)}
 .li:hover .rico .ic-sun{transform:rotate(45deg) scale(1.1)}
@@ -198,7 +200,7 @@ svg{display:block}
 .logs div{background:var(--card);border-radius:.875rem;padding:.5rem .75rem;font-size:.8125rem;line-height:1.4;overflow-wrap:anywhere}
 .logs b{font-weight:400;color:var(--acc);margin-right:.5rem}
 .logs span{color:var(--muted)}
-.modal{position:absolute;inset:0;display:grid;place-items:center;padding:1.5rem}
+.modal{display:grid;place-items:center;width:100%}
 .card{position:relative;width:100%;max-width:21rem;background:var(--card);border-radius:1.5rem;padding:1.375rem 1.25rem 1.125rem;box-shadow:var(--shadow);text-align:center;opacity:0;transform:translateY(.75rem) scale(.97);transition:transform .24s cubic-bezier(.4,0,.2,1),opacity .24s cubic-bezier(.4,0,.2,1)}
 .layer.on .card{opacity:1;transform:none;animation:spring .5s cubic-bezier(.3,.6,.4,1)}
 .card .gimg{width:3.5rem;height:3.5rem;border-radius:1.125rem;margin:0 auto .5rem}
@@ -227,7 +229,7 @@ svg{display:block}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <body>
-<div class="stage"><div class="win" id="win"></div></div>
+<div class="stage"><div class="win" id="win"></div></div><div id="layers"></div>
 
 <script>
 // ---------------- languages: English is the source text; the others are looked up by it ----------------
@@ -491,11 +493,13 @@ function render() {
   if (shownKey !== sel) { shownKey = sel; swapKey = sel; }
 
   const lg = s.login || {};
-  const html = header(s) + (lg.needed ? loginBody(s) : mainBody(s))
-    + '<div class="layer ' + (sheet ? 'on' : '') + '" data-key="lsheet"><div class="scrim" data-act="sheet"></div>' + settings(s) + '</div>'
+  const html = header(s) + (lg.needed ? loginBody(s) : mainBody(s));
+  const layers = '<div class="layer ' + (sheet ? 'on' : '') + '" data-key="lsheet"><div class="scrim" data-act="sheet"></div>' + settings(s) + '</div>'
     + '<div class="layer ' + (modal ? 'on' : '') + '" data-key="lmodal"><div class="scrim" data-act="close"></div>' + modalHtml(s) + '</div>';
   const tmp = document.createElement('div'); tmp.innerHTML = html;
   morph($('win'), tmp);
+  const tl = document.createElement('div'); tl.innerHTML = layers;
+  morph($('layers'), tl);
   fadeEdges();
   swapKey = null;
 }
