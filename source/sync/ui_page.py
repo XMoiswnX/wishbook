@@ -8,240 +8,230 @@ PAGE = r"""<!doctype html>
 <link rel="icon" href="{{ICON}}">
 <style>
 @font-face{font-family:"jf-openhuninn";src:local("jf-openhuninn-2.1"),local("jf open 粉圓 2.1"),url("https://cdn.jsdelivr.net/gh/justfont/open-huninn-font@v2.1/font/jf-openhuninn-2.1.ttf") format("truetype");font-display:swap}
-:root{color-scheme:light;--bg:#e8eef6;--panel:#fff;--text:#2b3f58;--muted:#8193a8;--line:#d5e4f4;--head:#e3f1fe;--head-text:#1a6fc4;--bar:#1a8cf0;--card:#f2f6fb;--track:#dfe8f3}
+/* everything is sized in rem and the root size follows both the width and the height of the window: big screens scale it up, small ones scale it down */
+html{font-size:clamp(12px,min(.55vw + 10px,2.05vh),24px)}
+:root{color-scheme:light;--bg:#e8eef6;--card:#fff;--card2:#f2f6fb;--text:#2b3f58;--muted:#8193a8;--line:#e1e8f0;--acc:#1a8cf0;--on-acc:#fff;--soft:#e3f1fe;--good:#1fa971;--on-good:#fff;--bad:#d63f6c;--on-bad:#fff;--track:#e3eaf3;--hover:#e6eef8;--scrim:rgba(30,44,64,.45);--shadow:0 .5rem 1.5rem rgba(43,63,88,.14)}
+:root[data-mode=dark]{color-scheme:dark;--bg:#0e1015;--card:#1e222b;--card2:#272c37;--text:#eceff5;--muted:#9aa3b5;--line:#313746;--acc:#6bb8ff;--on-acc:#0b1a2b;--soft:#223348;--good:#62d8a6;--on-good:#0b2a1f;--bad:#ff8aa8;--on-bad:#2a0b14;--track:#2c3340;--hover:#323949;--scrim:rgba(5,6,9,.62);--shadow:0 .5rem 1.5rem rgba(0,0,0,.5)}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px;background:var(--bg);color:var(--text);font:16px/1.5 "jf-openhuninn","Microsoft JhengHei","Microsoft YaHei","Yu Gothic UI","Malgun Gothic",system-ui,sans-serif}
-.dlg{width:100%;max-width:560px;background:var(--panel);border:3px solid var(--line);border-radius:34px;overflow:hidden;animation:rise .55s cubic-bezier(.22,1.2,.36,1) both}
-.title{display:flex;align-items:center;gap:10px;padding:16px 28px;background:var(--head);color:var(--head-text);font-size:19px;transition:background .3s,color .3s}
-.title i{width:10px;height:26px;border-radius:8px;background:var(--bar);animation:pop .5s .3s cubic-bezier(.22,1.2,.36,1) both;transition:background .3s}
-.title #who{margin-left:auto;font-size:14px;opacity:.75}
-.ib{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:4px;height:32px;min-width:32px;padding:0;border:0;border-radius:999px;cursor:pointer;font:inherit;font-size:13px;background:#fff;color:var(--head-text);transition:filter .2s,transform .2s,background .2s}
-.ib:hover{filter:brightness(.96);transform:translateY(-1px)}
-.ib.new{height:34px;padding:0 8px 0 11px;gap:8px;color:var(--head-text)}
-.ib.new b{display:inline-block;padding:1px 9px;border-radius:999px;background:#ff5d73;color:#fff;font-size:11px;font-weight:600;letter-spacing:.5px;line-height:18px;animation:blink 1.6s ease-in-out infinite}
-@keyframes blink{50%{opacity:.55}}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);font:.9375rem/1.5 "jf-openhuninn","Microsoft JhengHei","Microsoft YaHei","Yu Gothic UI","Malgun Gothic",system-ui,sans-serif;transition:background .3s,color .3s}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit;text-decoration:none}
+svg{display:block}
+.stage{min-height:100vh;display:grid;place-items:center;padding:1rem}
 
-/* dialogs: they spring in, and sink + fade out a little faster */
-.ov{position:fixed;inset:0;display:grid;place-items:center;padding:20px;background:rgba(43,63,88,.38);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s ease,visibility 0s .22s}
-.ov.open{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s ease,visibility 0s}
-.set,.dlgc,.msg{position:relative;width:100%;background:var(--panel);border:3px solid var(--line);opacity:0;transform:translateY(18px) scale(.95);transition:transform .2s ease-in,opacity .18s ease-in}
-.ov.open .set,.ov.open .dlgc,.ov.open .msg{opacity:1;transform:none;transition:transform .36s cubic-bezier(.22,1.2,.36,1),opacity .22s ease-out}
-.set{display:grid;grid-template-columns:200px minmax(0,1fr);max-width:780px;height:min(580px,100%);border-radius:30px;overflow:hidden}
-.snav{display:flex;flex-direction:column;gap:6px;padding:26px 14px;background:var(--card)}
-.snav h3{margin:0 0 12px 12px;font-size:20px;font-weight:400}
-.snav button{display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:transparent;color:var(--text);font:inherit;font-size:15px;text-align:left;padding:11px 14px;border-radius:16px;cursor:pointer;transition:background .2s}
-.snav button:hover{background:rgba(26,140,240,.08)}
-.snav button.on{background:var(--head);color:var(--head-text)}
-.snav .dot{flex:none;width:9px;height:9px;border-radius:50%;background:#ff5d73;animation:blink 1.6s ease-in-out infinite}
-.spane{padding:26px 28px 28px;overflow:auto;min-width:0}
-.spane[hidden]{display:none}
-.spane h2{margin:0 0 16px;font-size:20px;font-weight:400;color:var(--text)}
-.x{position:absolute;top:14px;right:14px;width:34px;height:34px;border:0;border-radius:50%;background:var(--card);color:var(--muted);cursor:pointer;font:inherit;font-size:18px;line-height:1;z-index:1;transition:filter .2s,transform .2s}
-.x:hover{filter:brightness(.95);transform:rotate(90deg)}
-.dlgc{max-width:660px;height:min(440px,100%);border-radius:30px;padding:24px 26px 22px;display:flex;flex-direction:column}
-.dlgc h2,.msg h2{margin:0 0 16px;font-size:20px;font-weight:400}
-.cl{flex:1;min-height:0;display:grid;grid-template-columns:190px minmax(0,1fr)}
-.clv{overflow:auto;display:flex;flex-direction:column;gap:6px;padding-right:12px;border-right:1px solid var(--line)}
-.clv button{display:flex;align-items:center;justify-content:space-between;gap:8px;border:0;background:transparent;color:var(--text);font:inherit;font-size:15px;text-align:left;padding:10px 14px;border-radius:14px;cursor:pointer;transition:background .2s}
-.clv button:hover{background:rgba(26,140,240,.08)}
-.clv button.on{background:var(--head);color:var(--head-text)}
-.cld{overflow:auto;padding:0 6px 0 24px;min-width:0}
-.cld h4{margin:0 0 .35rem;font-size:13.5px;font-weight:400;color:var(--muted)}
-.cld p{margin:0 0 1.15rem;font-size:15px;line-height:1.65}
-.msg{max-width:390px;border-radius:26px;padding:24px 26px 22px}
-.msg.vup{max-width:440px}
-.msg p{margin:0 0 22px;font-size:15px;line-height:1.65}
-.vub{max-height:260px;overflow:auto;margin:0 0 20px;padding-right:8px}
-.vub .vh{font-size:13.5px;color:var(--muted);margin:0 0 .15rem}
-.vub p{margin:0 0 .9rem;font-size:15px;line-height:1.65}
-.msg .btns{display:flex;justify-content:flex-end;gap:10px}
-.btn{border:0;border-radius:999px;padding:8px 26px;font:inherit;font-size:15px;cursor:pointer;background:var(--bar);color:#fff;transition:filter .2s}
-.btn:hover{filter:brightness(1.07)}
-.btn.ghost{background:transparent;color:var(--text);box-shadow:inset 0 0 0 1.5px #b9c7d8}
-.btn.ghost:hover{background:var(--head);filter:none}
-@media(max-width:620px){.set{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr)}.snav{flex-direction:row;align-items:center;padding:14px 60px 14px 14px;overflow:auto}.snav h3{display:none}.spane{padding:20px}}
-
-/* settings content */
-.app{display:flex;align-items:center;gap:14px;margin:2px 0 18px}
-.app img{width:52px;height:52px;border-radius:16px;object-fit:cover;background:var(--track)}
-.app b{font-weight:400;font-size:19px}
-.app i{width:1.5px;height:18px;background:var(--line)}
-.app span{font-size:16px;color:var(--muted)}
-.grp{background:var(--card);border-radius:20px;overflow:hidden}
-.grp.vis{overflow:visible}
-.grp+.grp{margin-top:14px}
-.rw{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 18px;font-size:15px;line-height:1.5}
-.rw+.rw{border-top:1px solid var(--line)}
-.rw small{display:block;font-size:13px;color:var(--muted);margin-top:1px}
-.rw small.warn{color:#8a6200}
-.rw b{font-weight:400}
-.rw .n{flex:none;width:26px;height:26px;border-radius:50%;background:var(--head);color:var(--head-text);display:grid;place-items:center;font-size:13px;margin-right:2px}
-.rw.step{justify-content:flex-start;align-items:flex-start;gap:12px}
-.rw.lnk{width:100%;border:0;background:transparent;font:inherit;font-size:15px;color:inherit;text-align:left;cursor:pointer;transition:background .2s}
-.rw.lnk:hover{background:rgba(26,140,240,.06)}
-.rw.newv{flex-wrap:wrap}
-.rw.newv .upbar{flex:1 0 100%;margin-top:2px}
-.rw.newv .uerr{flex:1 0 100%;margin-top:0;font-size:13px;color:#c2447a}
-.chev{flex:none;display:inline-flex;color:var(--muted)}
-.chev svg{width:20px;height:20px;fill:currentColor}
-.sec{margin:18px 4px 8px;font-size:14px;color:var(--muted)}
-.sec:first-of-type{margin-top:0}
-.ht{margin-left:6px;padding:1px 9px;border-radius:999px;background:var(--head);color:var(--head-text);font-size:11px;line-height:1.5;white-space:nowrap}
-.ht.new{background:#ff5d73;color:#fff}
-.rb{flex:none;display:inline-flex;align-items:center;gap:6px;border:1.5px solid #b9c7d8;background:transparent;color:var(--text);border-radius:999px;padding:5px 16px;font:inherit;font-size:14px;cursor:pointer;text-decoration:none;transition:background .2s,opacity .2s}
-.rb:hover:not(:disabled){background:var(--head)}
-.rb:disabled{opacity:.5;cursor:default}
-.rb.on{background:var(--bar);border-color:var(--bar);color:#fff}
-.rb svg{width:16px;height:16px}
-.upbar{height:6px;border-radius:6px;background:var(--track);overflow:hidden;margin-top:12px}
-.upbar i{display:block;height:100%;width:0;border-radius:6px;background:var(--bar);transition:width .3s}
+/* window: one size in every state */
+.win{position:relative;width:32rem;max-width:100%;height:min(35rem,calc(100vh - 2rem));background:var(--card);border-radius:1.75rem;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column;animation:rise .5s cubic-bezier(.22,1.2,.36,1) both}
+.win>*{flex:none}
+.win>.body{flex:1 1 0;min-height:0}
+.hd{display:flex;align-items:center;gap:.75rem;padding:1rem 1.125rem .5rem 1.25rem}
+.hd .lg{width:2.25rem;height:2.25rem;object-fit:contain;animation:pop .5s .15s cubic-bezier(.22,1.3,.36,1) both}
+.hd .tt{min-width:0;flex:1}
+.hd .tt b{display:block;font-weight:400;font-size:1.125rem;line-height:1.2}
+.who{display:flex;align-items:center;gap:.5rem;padding:.25rem .625rem .25rem .25rem;border-radius:62rem;background:var(--card2);font-size:.8125rem;color:var(--muted);max-width:9rem}
+.who i{width:1.5rem;height:1.5rem;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-style:normal;font-size:.75rem;flex:none}
+.who span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ib{position:relative;width:2.375rem;height:2.375rem;border:0;border-radius:.75rem;background:var(--card2);color:var(--muted);display:grid;place-items:center;flex:none;transition:background .2s,color .2s,transform .2s}
+.ib:hover{background:var(--hover);color:var(--text)}
+.ib:active{transform:scale(.95)}
+.ib svg{width:1.25rem;height:1.25rem;transition:transform .45s cubic-bezier(.22,1.6,.36,1)}
+.ib:hover svg{transform:rotate(60deg)}
+.ib .nw{position:absolute;right:-.25rem;top:-.375rem;background:var(--bad);color:var(--on-bad);font-size:.625rem;line-height:1;padding:.1875rem .375rem;border-radius:.5rem;animation:blink 1.6s ease-in-out infinite}
+.btn{border:0;border-radius:.875rem;background:var(--acc);color:var(--on-acc);padding:.6875rem 1.125rem;display:inline-flex;align-items:center;justify-content:center;gap:.5rem;font-size:.9375rem;transition:filter .2s,transform .2s}
+.btn:hover:not(:disabled){filter:brightness(1.07);transform:translateY(-1px)}
+.btn:active:not(:disabled){transform:scale(.97)}
+.btn:disabled{background:var(--track);color:var(--muted);cursor:default}
+.btn.alt{background:var(--card2);color:var(--text)}
+.btn.alt svg{color:var(--acc)}
+.btn.alt:disabled svg{color:var(--muted)}
+.hero .btn.alt,.gc .btn.alt{background:var(--card)}
+.btn.sm{padding:.4375rem .875rem;font-size:.875rem;border-radius:.75rem}
+.btn.ghost{background:var(--card2);color:var(--text)}
+.gc .btn.ghost{background:var(--card)}
+.btn svg{width:1.125rem;height:1.125rem;flex:none}
+.btn:hover:not(:disabled) .ic-redo{animation:turn .55s cubic-bezier(.3,1.2,.5,1)}
+.btn:hover .ic-arr .mv{animation:nudge .6s ease}
+.ic-redo{transform-origin:50% 50%}
 .spin{animation:spin .9s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-.sel{position:relative;flex:none}
-.selb{display:inline-flex;align-items:center;gap:8px;border:0;background:#fff;color:var(--text);font:inherit;font-size:15px;cursor:pointer;padding:7px 12px 7px 16px;border-radius:12px;box-shadow:inset 0 0 0 1.5px var(--line);transition:box-shadow .2s}
-.selb:hover{box-shadow:inset 0 0 0 1.5px #b9c7d8}
-.selb .chv{width:18px;height:18px;fill:currentColor;color:var(--muted);transition:transform .3s cubic-bezier(.22,1,.36,1)}
-.selb[aria-expanded=true] .chv{transform:rotate(180deg)}
-.menu{position:absolute;right:0;top:calc(100% + 8px);width:230px;z-index:5;display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .3s cubic-bezier(.22,1,.36,1),visibility 0s .3s}
-.menu.open{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .3s cubic-bezier(.22,1,.36,1),visibility 0s}
-.menui{overflow:hidden;min-height:0;background:var(--panel);border-radius:16px;box-shadow:0 0 0 1.5px var(--line),0 12px 30px rgba(43,63,88,.2)}
-.mlist{padding:6px}
-.menu button{display:flex;width:100%;align-items:center;justify-content:space-between;border:0;background:transparent;font:inherit;font-size:15px;color:var(--text);padding:12px 14px;border-radius:11px;cursor:pointer;text-align:left;transition:background .15s}
-.menu button:hover{background:var(--card)}
-.menu button .lb{flex:1;margin-left:12px}
-.menu button .ck{width:18px;height:18px;fill:var(--bar);opacity:0;transform:scale(.6);transition:opacity .2s,transform .25s cubic-bezier(.22,1.4,.36,1)}
-.menu button.on .ck{opacity:1;transform:none}
-.fl{display:inline-flex;flex:none}
-.fl svg{width:26px;height:17.5px;border-radius:3.4px;box-shadow:0 0 0 1px rgba(43,63,88,.16)}
-.selb .fl{margin-right:-2px}
-.sw{flex:none;position:relative;width:46px;height:26px;border:0;border-radius:999px;background:var(--track);cursor:pointer;transition:background .25s}
-.sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .28s cubic-bezier(.22,1.2,.36,1)}
-.sw[aria-checked=true]{background:var(--bar)}
-.sw[aria-checked=true] i{transform:translateX(20px)}
+.ft{display:flex;gap:.625rem;padding:.5rem 1.25rem 1.25rem}
+.ft .btn{flex:1}
+.chip{display:inline-flex;align-items:center;gap:.25rem;font-size:.75rem;line-height:1.125rem;padding:.125rem .625rem;border-radius:.5rem;white-space:nowrap;border:0}
+.chip.wait,.chip.skip{background:var(--track);color:var(--muted)}
+.chip.q{background:var(--card);color:var(--muted)}
+.chip.run{background:var(--acc);color:var(--on-acc)}
+.chip.ok{background:var(--good);color:var(--on-good);animation:pop .4s cubic-bezier(.22,1.5,.36,1)}
+.chip.bad{background:var(--bad);color:var(--on-bad);animation:pop .4s cubic-bezier(.22,1.5,.36,1);cursor:pointer}
+.chip svg{width:.75rem;height:.75rem}
+.bar{height:.5rem;border-radius:.5rem;background:var(--track);overflow:hidden}
+.bar i{display:block;height:100%;width:0;border-radius:.5rem;background:var(--acc);transition:width .5s ease}
+.gimg{display:block;object-fit:cover;background:var(--track)}
 
-/* main card */
-.notice{margin:18px 22px 0;padding:14px 20px;border-radius:22px;background:#fff4d1;color:#8a6200;font-size:15px}
-.notice.bad{background:#fde8f0;color:#c2447a}
-.list{padding:4px 20px 2px}
-.g{margin-top:10px;background:var(--card);border-radius:22px;padding:12px 18px;animation:fade .45s both}
-.row{display:flex;align-items:center;gap:14px}
-.ic{flex:none;width:44px;height:44px;border-radius:14px;object-fit:cover;background:var(--track);display:block}
-.info{flex:1;min-width:0}
-.name{font-size:18px;line-height:1.3}
-.detail{font-size:14px;color:var(--muted);margin-top:3px;overflow-wrap:anywhere}
-.pill{flex:none;font-size:14px;border-radius:999px;padding:5px 16px;transition:background .25s,color .25s}
-.side{flex:none;display:flex;align-items:center;gap:8px}
-.pill.wait,.pill.skip{background:#edf1f6;color:#8193a8}
-.pill.run{background:#e3f1fe;color:#1a6fc4;animation:pulse 1.2s ease-in-out infinite}
-.pill.ok{background:#e0f5ec;color:#168a5b}
-.pill.bad{background:#fde8f0;color:#c2447a}
-.upd{flex:none;border:0;cursor:pointer;font:inherit;font-size:14px;border-radius:999px;padding:6px 18px;background:var(--bar);color:#fff;transition:filter .2s,transform .2s,opacity .2s}
-.upd:hover:not(:disabled){filter:brightness(1.07);transform:translateY(-1px)}
-.upd:active:not(:disabled){transform:none}
-.upd:disabled{opacity:.45;cursor:default}
-.upd.again{background:var(--head);color:var(--head-text)}
-.acts{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-.go.alt{background:var(--head);color:var(--head-text);border:0;cursor:pointer;font:inherit;font-size:16px}
-.go.alt:disabled{opacity:.45;cursor:default;transform:none;filter:none}
-.bar{height:8px;border-radius:8px;background:var(--track);margin-top:12px;overflow:hidden;display:none}
-.g.running .bar{display:block}
-.bar b{display:block;height:100%;width:0;border-radius:8px;background:var(--bar);transition:width .4s ease}
-.act{padding:16px 20px 22px;text-align:center;animation:fade .45s both}
-.go{display:inline-flex;align-items:center;gap:8px;background:var(--bar);color:#fff;border-radius:999px;padding:9px 28px;font-size:16px;text-decoration:none;transition:filter .2s,transform .2s}
-.go:hover{filter:brightness(1.07);transform:translateY(-1px)}
-.go:active{transform:none}
-.lgn{padding:6px 28px 8px;display:grid;gap:12px;text-align:center}
-.lgn[hidden]{display:none}
-.provs{display:grid;gap:10px;justify-items:center}
-.provs .go{border:0;cursor:pointer;font:inherit;font-size:16px;min-width:240px;justify-content:center}
-.lerr{color:#c2447a;font-size:14px}
-.wait{padding:8px 28px 4px;text-align:center}
-.wait[hidden]{display:none}
-.wc{display:inline-block;font-size:34px;letter-spacing:.16em;padding:8px 26px;border-radius:22px;background:var(--gray);color:var(--head-text);user-select:all}
-.wh{margin-top:10px;font-size:13px;color:var(--muted)}
-.hint{padding:18px 28px 26px;text-align:center;font-size:15px;color:var(--muted)}
-body.err .title{--head:#fde8f0;--head-text:#c2447a;--bar:#f06a9b;background:#fde8f0;color:#c2447a}
-body.err .title i{background:#f06a9b}
-@keyframes rise{from{opacity:0;transform:translateY(22px) scale(.96)}to{opacity:1;transform:none}}
-@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-@keyframes pop{0%{transform:scaleY(0)}70%{transform:scaleY(1.25)}100%{transform:scaleY(1)}}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+/* main window: the games on top, the chosen game below */
+.dock{display:flex;gap:.5rem;justify-content:center;padding:.25rem 1.25rem .5rem}
+.gi{position:relative;border:0;background:transparent;padding:.1875rem;border-radius:1.125rem;transition:transform .25s cubic-bezier(.22,1.3,.36,1);animation:pop .45s cubic-bezier(.22,1.3,.36,1) backwards}
+.gi img{width:3.25rem;height:3.25rem;border-radius:.9375rem;display:block}
+.gi:hover{transform:translateY(-.3125rem) scale(1.1)}
+.gi.on::after{content:"";position:absolute;left:50%;bottom:-.25rem;width:.375rem;height:.375rem;margin-left:-.1875rem;border-radius:50%;background:var(--acc)}
+.gi .bd{position:absolute;right:-.125rem;top:-.125rem;width:.875rem;height:.875rem;border-radius:50%;border:.15625rem solid var(--card);background:var(--acc)}
+.gi .bd.ok{background:var(--good)}.gi .bd.bad{background:var(--bad)}.gi .bd.q{background:var(--muted)}
+.gi .bd.run{animation:pulse 1.4s ease-in-out infinite}
+.body{padding:.25rem 1.25rem;display:flex}
+.hero{flex:1;background:var(--card2);border-radius:1.5rem;padding:1rem;display:flex;flex-direction:column;min-height:0}
+.hero .top{display:flex;align-items:center;gap:.875rem}
+.hero .gimg{width:4.25rem;height:4.25rem;border-radius:1.25rem;flex:none}
+.hero .gimg.pop{animation:swap .28s cubic-bezier(.22,1.4,.36,1)}
+.hero .tx{min-width:0;flex:1}
+.hero .nm{font-size:1.1875rem;line-height:1.25}
+.hero .meta{color:var(--muted);font-size:.8125rem;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+.pools{margin:.875rem 0 .75rem;display:grid;gap:.375rem;align-content:start;flex:1;min-height:0;overflow:hidden}
+.pools.many{grid-template-columns:1fr 1fr}  /* seven pools (Wuthering Waves) go two by two so they still fit */
+.pools.many .pl{gap:.5rem;padding:.4375rem .625rem}
+.pl{display:grid;grid-template-columns:1.375rem 1fr auto;gap:.625rem;align-items:center;background:var(--card);border-radius:.875rem;padding:.4375rem .75rem}
+.pl .d{width:1.375rem;height:1.375rem;border-radius:.5rem;display:grid;place-items:center;background:var(--track);color:var(--muted)}
+.pl .d svg{width:.8125rem;height:.8125rem}
+.pl.ok .d{background:var(--good);color:var(--on-good)}
+.pl.run .d{background:var(--acc);color:var(--on-acc)}
+.pl.bad .d{background:var(--bad);color:var(--on-bad)}
+.pl .n{font-size:.875rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pl .c{font-size:.8125rem;color:var(--muted);white-space:nowrap}
+.pl.run .c{color:var(--acc)}
+.hero>.btn{width:100%}
+.hero>.btn[hidden]{display:none}
+
+/* sign-in and code */
+.cover{flex:1;display:grid;align-content:center;justify-items:center;text-align:center;padding:1rem 2rem 2rem;gap:.375rem}
+.cover .big{width:4.5rem;height:4.5rem;object-fit:contain}
+.cover h2{margin:.25rem 0 0;font-weight:400;font-size:1.375rem}
+.cover p{margin:0 0 .875rem;color:var(--muted);font-size:.875rem;max-width:20rem}
+.prov{width:100%;max-width:18rem;border:0;border-radius:.875rem;padding:.6875rem 1.125rem;display:flex;align-items:center;justify-content:center;gap:.625rem;color:#fff;margin-bottom:.625rem;transition:transform .2s,filter .2s}
+.prov:hover{filter:brightness(1.07)}
+.prov:active{transform:scale(.97)}
+.prov svg{width:1.25rem;height:1.25rem;transition:transform .35s cubic-bezier(.22,1.6,.36,1)}
+.prov:hover svg{transform:rotate(-12deg) scale(1.1)}
+.prov.discord{background:#5865f2}
+.prov.google{background:#fff;color:#1f1f1f;box-shadow:inset 0 0 0 1px #dadce0}
+.lerr{color:var(--bad);font-size:.875rem;max-width:20rem}
+.code{font-size:2.5rem;letter-spacing:.14em;line-height:1.2;padding:.5rem 1.5rem;border-radius:1.25rem;background:var(--card2);color:var(--acc);margin:.5rem 0;user-select:all;min-width:9rem}
+.copy{margin:.25rem 0 .5rem}
+.copy svg{transition:transform .25s cubic-bezier(.22,1.4,.36,1)}
+.copy:hover:not(:disabled) svg{transform:translate(1px,1px)}
+.warn{font-size:.8125rem;color:var(--muted);max-width:21rem}
+
+/* layers: the settings page and the popups */
+.layer{position:absolute;inset:0;display:flex;visibility:hidden;pointer-events:none;transition:visibility 0s .36s}
+.layer.on{visibility:visible;pointer-events:auto;transition:visibility 0s}
+.scrim{position:absolute;inset:0;background:var(--scrim);opacity:0;transition:opacity .3s cubic-bezier(.4,0,.2,1)}
+.layer.on .scrim{opacity:1}
+.sheet{position:absolute;inset:0;background:var(--card);display:flex;flex-direction:column;transform:translateY(100%);will-change:transform;transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.layer.on .sheet{transform:none;transition:transform .42s cubic-bezier(.22,1.1,.36,1)}
+.shd{display:flex;align-items:center;gap:.75rem;padding:1.125rem 1.25rem .875rem}
+.shd .av{width:2.75rem;height:2.75rem;border-radius:50%;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-size:1.125rem;flex:none}
+.shd .ltx{flex:1;min-width:0}
+.shd .ltx b{display:block;font-weight:400;font-size:1.125rem;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.shd .ltx small{display:block;color:var(--muted);font-size:.8125rem}
+.ib.close:hover svg{transform:rotate(90deg)}
+.scroll{flex:1;min-height:0;overflow:auto;padding:0 1.25rem 1.25rem;display:grid;gap:.5rem;align-content:start;scrollbar-width:none;--ft:0px;--fb:0px;-webkit-mask-image:linear-gradient(to bottom,transparent 0,#000 var(--ft),#000 calc(100% - var(--fb)),transparent 100%);mask-image:linear-gradient(to bottom,transparent 0,#000 var(--ft),#000 calc(100% - var(--fb)),transparent 100%)}
+.scroll::-webkit-scrollbar{display:none}
+.scroll.fade-t{--ft:1rem}.scroll.fade-b{--fb:1.5rem}
+.gh{display:flex;align-items:center;gap:.5rem;color:var(--muted);font-size:.8125rem;margin:.25rem .25rem .5rem}
+.gh svg{width:1rem;height:1rem;color:var(--acc)}
+.gc{background:var(--card2);border-radius:1.25rem}
+.li{display:flex;align-items:center;gap:.75rem;width:100%;padding:.75rem .875rem;border:0;background:transparent;text-align:left;border-radius:0}
+.gc>.li:first-child{border-radius:1.25rem 1.25rem 0 0}
+.gc>.li:last-child{border-radius:0 0 1.25rem 1.25rem}
+.gc>.li:only-child{border-radius:1.25rem}
+.gc>.li+.li,.gc>.acc+.li,.gc>.bar+.li{box-shadow:inset 0 1px 0 var(--line)}
+.rico{width:2.375rem;height:2.375rem;border-radius:.75rem;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;flex:none}
+.rico svg{width:1.25rem;height:1.25rem;transition:transform .3s cubic-bezier(.22,1.6,.36,1)}
+.li.lf:hover{background:var(--hover)}
+.li:hover .rico .ic-globe{transform:rotate(40deg)}
+.li:hover .rico .ic-moon{transform:rotate(-18deg) scale(1.1)}
+.li:hover .rico .ic-sun{transform:rotate(45deg) scale(1.1)}
+.li:hover .rico .ic-tag{transform:rotate(-16deg)}
+.li:hover .rico .ic-bolt{transform:translate(1px,-1px) scale(1.18)}
+.li:hover .rico .ic-list{transform:scale(1.15)}
+.li:hover .rico .ic-help{transform:rotate(-14deg) scale(1.12)}
+.ltx{flex:1;min-width:0}
+.ltx b{display:block;font-weight:400;font-size:.9375rem;line-height:1.3}
+.ltx small{display:block;color:var(--muted);font-size:.8125rem;line-height:1.4;margin-top:.125rem}
+.ltx small.err{color:var(--bad)}
+.li .chv{width:1.125rem;height:1.125rem;color:var(--muted);flex:none;transition:transform .3s cubic-bezier(.22,1.4,.36,1)}
+.li.lf.open .chv{transform:rotate(180deg)}
+.acc{display:grid;grid-template-rows:0fr;transition:grid-template-rows .3s cubic-bezier(.22,1,.36,1)}
+.acc.on{grid-template-rows:1fr}
+.acc>.in{overflow:hidden;min-height:0}
+.gc .acc .pad{padding:.25rem .875rem .875rem}
+.upbar{margin:0 .875rem .75rem}
+.selb{display:inline-flex;align-items:center;gap:.5rem;border:0;background:var(--card);color:var(--text);padding:.4375rem .625rem .4375rem .75rem;border-radius:.75rem;font-size:.875rem;transition:background .2s}
+.selb:hover{background:var(--hover)}
+.selb .chv{width:1.125rem;height:1.125rem;color:var(--muted);transition:transform .3s cubic-bezier(.22,1.4,.36,1)}
+.selb.open .chv{transform:rotate(180deg)}
+.fl{display:inline-flex;flex:none;width:1.375rem;height:.9375rem}
+.fl svg{width:100%;height:100%;border-radius:.1875rem;box-shadow:0 0 0 1px var(--line)}
+.dd{position:relative;flex:none}
+.menu{position:absolute;right:0;top:calc(100% + .5rem);width:12.5rem;z-index:5;display:grid;grid-template-rows:0fr;visibility:hidden;transition:grid-template-rows .28s cubic-bezier(.22,1,.36,1),visibility 0s .28s}
+.menu.on{grid-template-rows:1fr;visibility:visible;transition:grid-template-rows .28s cubic-bezier(.22,1,.36,1),visibility 0s}
+.menu>.in{overflow:hidden;min-height:0;background:var(--card);border-radius:1rem;box-shadow:0 0 0 1.5px var(--line),var(--shadow);padding:0 .375rem}
+.menu>.in>.mi:first-child{margin-top:.375rem}.menu>.in>.mi:last-child{margin-bottom:.375rem}
+.mi{display:flex;align-items:center;gap:.625rem;width:100%;border:0;background:transparent;padding:.5625rem .625rem;border-radius:.625rem;font-size:.875rem;text-align:left;transition:background .15s}
+.mi:hover{background:var(--card2)}
+.mi span:not(.fl){flex:1}
+.mi .fl{width:1.5rem;height:1rem}
+.mi>svg{width:1rem;height:1rem;color:var(--acc)}
+.mi.on{color:var(--acc)}
+.sw{position:relative;width:2.875rem;height:1.625rem;border:0;border-radius:62rem;background:var(--track);flex:none;transition:background .25s}
+.sw i{position:absolute;top:.1875rem;left:.1875rem;width:1.25rem;height:1.25rem;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .28s cubic-bezier(.22,1.2,.36,1)}
+.sw[aria-checked=true]{background:var(--acc)}
+.sw[aria-checked=true] i{transform:translateX(1.25rem)}
+.theme{position:relative;width:4.375rem;height:2.375rem;padding:0;border:1px solid rgba(0,0,0,.06);border-radius:62rem;background:#9fd3ff;overflow:hidden;flex:none;transition:background .4s}
+:root[data-mode=dark] .theme{background:#1b2350}
+.theme .orb{position:absolute;top:.3125rem;left:.3125rem;width:1.625rem;height:1.625rem;border-radius:50%;background:#ffd45c;transition:transform .5s cubic-bezier(.22,1.3,.36,1),background-color .5s,box-shadow .5s}
+:root[data-mode=dark] .theme .orb{transform:translateX(1.9375rem);background:#e8eaff;box-shadow:inset -.4rem -.15rem 0 0 #1b2350}
+.theme i{position:absolute;width:3px;height:3px;border-radius:50%;background:#fff;opacity:0;transform:scale(.2);transition:opacity .4s .15s,transform .4s .15s}
+.theme i:nth-of-type(1){left:2.1rem;top:.5rem}.theme i:nth-of-type(2){left:2.8rem;top:1.3rem}.theme i:nth-of-type(3){left:3.4rem;top:.6rem}
+:root[data-mode=dark] .theme i{opacity:.9;transform:none}
+.steps{display:grid;gap:.5rem;margin:0;padding:0;counter-reset:s}
+.steps li{list-style:none;display:flex;gap:.625rem;align-items:flex-start;font-size:.875rem;line-height:1.45}
+.steps li::before{counter-increment:s;content:counter(s);flex:none;width:1.375rem;height:1.375rem;border-radius:.5rem;background:var(--acc);color:var(--on-acc);display:grid;place-items:center;font-size:.75rem;margin-top:.0625rem}
+.notes{margin:.75rem 0 0;padding:0;display:grid;gap:.375rem}
+.notes li{list-style:none;color:var(--muted);font-size:.8125rem;line-height:1.45}
+.logs{display:grid;gap:.5rem}
+.logs div{background:var(--card);border-radius:.875rem;padding:.5rem .75rem;font-size:.8125rem;line-height:1.4;overflow-wrap:anywhere}
+.logs b{font-weight:400;color:var(--acc);margin-right:.5rem}
+.logs span{color:var(--muted)}
+.modal{position:absolute;inset:0;display:grid;place-items:center;padding:1.5rem}
+.card{position:relative;width:100%;max-width:21rem;background:var(--card);border-radius:1.5rem;padding:1.375rem 1.25rem 1.125rem;box-shadow:var(--shadow);text-align:center;opacity:0;transform:translateY(.75rem) scale(.97);transition:transform .24s cubic-bezier(.4,0,.2,1),opacity .24s cubic-bezier(.4,0,.2,1)}
+.layer.on .card{opacity:1;transform:none;animation:spring .5s cubic-bezier(.3,.6,.4,1)}
+.card .gimg{width:3.5rem;height:3.5rem;border-radius:1.125rem;margin:0 auto .5rem}
+.card h4{margin:0;font-weight:400;font-size:1.125rem}
+.card p{margin:.375rem 0 1rem;color:var(--muted);font-size:.875rem;line-height:1.5}
+.card .why{background:var(--card2);color:var(--bad);border-radius:.875rem;padding:.5rem .75rem;margin:.625rem 0 1rem;font-size:.875rem;overflow-wrap:anywhere}
+.card .vers{max-height:9rem;overflow:auto;text-align:left;margin:.5rem 0 1rem;scrollbar-width:none}
+.card .vers::-webkit-scrollbar{display:none}
+.card .vers b{font-weight:400;color:var(--acc);font-size:.8125rem}
+.card .vers p{margin:0 0 .5rem;color:var(--text)}
+.card .row2{display:flex;gap:.5rem}
+.card .row2 .btn{flex:1}
+.card .upbar{margin:.25rem 0 1rem}
+
+/* the one entrance of the program: springs up from a little smaller, overshoots, settles (move only, nothing fades) */
+@keyframes spring{0%{transform:scale(.86)}55%{transform:scale(1.045)}80%{transform:scale(.99)}100%{transform:scale(1)}}
+.cover,.body[data-key=main] .hero{animation:spring .5s cubic-bezier(.3,.6,.4,1) backwards}
+@keyframes rise{from{opacity:0;transform:translateY(1.25rem) scale(.96)}to{opacity:1;transform:none}}
+@keyframes pop{0%{transform:scale(.6);opacity:0}70%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
+@keyframes swap{from{transform:scale(.9)}to{transform:none}}
+@keyframes turn{to{transform:rotate(360deg)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes nudge{0%,100%{transform:none}40%{transform:translateX(2.5px)}70%{transform:translateX(-.5px)}}
+@keyframes blink{50%{transform:scale(.88)}}
+@keyframes pulse{50%{transform:scale(.8)}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 <body>
-<main class="dlg">
-  <div class="title"><i></i><b id="ttl" style="font-weight:400">Getting ready</b><span id="who"></span><button class="ib" id="set" aria-label="Settings"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg></button></div>
-  <div class="notice" id="notice" hidden></div>
-  <div class="lgn" id="lgn" hidden>
-    <div class="provs" id="provs"></div>
-    <div class="lerr" id="lerr" hidden></div>
-  </div>
-  <div class="wait" id="wait" hidden><div class="wc" id="wcode"></div><div class="wh" data-t>The sign-in page will ask for this code. Do not enter it if you did not just open this program yourself.</div></div>
-  <div class="list" id="list"></div>
-  <div class="act" id="act" hidden><div class="acts"><button class="go alt" id="all" data-t>Update all</button><a class="go" id="go" target="_blank" rel="noopener"><span data-t>Open stats site</span><span>→</span></a></div></div>
-  <div class="hint" id="hint">&nbsp;</div>
-</main>
-
-<div class="ov" id="ovs"><div class="set" role="dialog" aria-modal="true">
-  <button class="x" data-close aria-label="close">✕</button>
-  <nav class="snav">
-    <h3 data-t>Settings</h3>
-    <button data-tab="gen" class="on"><span data-t>General</span></button>
-    <button data-tab="how"><span data-t>How to use</span></button>
-    <button data-tab="about"><span data-t>About</span><i class="dot" id="dotAbout" hidden></i></button>
-  </nav>
-  <section class="spane" id="tab-gen">
-    <h2 data-t>General</h2>
-    <div class="sec" data-t>Language</div>
-    <div class="grp vis">
-      <div class="rw"><span data-t>Display language</span>
-        <div class="sel"><button class="selb" id="langbtn" aria-haspopup="listbox" aria-expanded="false"><span class="fl" id="langflag"></span><span id="langcur">English</span><svg class="chv" viewBox="0 0 24 24" aria-hidden="true"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/></svg></button><div class="menu" id="langmenu" role="listbox"></div></div>
-      </div>
-    </div>
-    <div class="sec" data-t>Updates</div>
-    <div class="grp">
-      <div class="rw"><div><span data-t>Allow automatic updates</span><small data-t>When a new version is found, download and install it automatically, then restart.</small></div><button class="sw" id="autoupd" role="switch" aria-checked="false"><i></i></button></div>
-    </div>
-  </section>
-  <section class="spane" id="tab-how" hidden>
-    <h2 data-t>How to use</h2>
-    <div class="grp">
-      <div class="rw step"><span class="n">1</span><span data-t>Open the in-game pull history once, so the program can find the latest history link.</span></div>
-      <div class="rw step"><span class="n">2</span><span data-t>Come back here and press "Update" next to a game, or "Update all". Nothing runs automatically.</span></div>
-      <div class="rw step"><span class="n">3</span><span data-t>The first time, choose how to sign in, sign in on the page that opens, then enter the code shown in this window. You will stay signed in afterwards.</span></div>
-      <div class="rw step"><span class="n">4</span><span data-t>When it is done, open the stats site to see the result. Closing this tab ends the program.</span></div>
-    </div>
-    <div class="sec" data-t>Notes</div>
-    <div class="grp">
-      <div class="rw"><span data-t>If it says the history was never opened or the link has expired, open the in-game pull history again and then press Update.</span></div>
-      <div class="rw"><span data-t>Your login is stored on this PC in %APPDATA%\wishbook. Do not share it.</span></div>
-    </div>
-  </section>
-  <section class="spane" id="tab-about" hidden>
-    <h2 data-t>About</h2>
-    <div id="vabout"></div>
-  </section>
-</div></div>
-
-<div class="ov" id="ovc"><div class="dlgc" role="dialog" aria-modal="true">
-  <button class="x" data-close aria-label="close">✕</button>
-  <h2 data-t>Changelog</h2>
-  <div class="cl"><nav class="clv" id="clv"></nav><section class="cld" id="cld"></section></div>
-</div></div>
-<div class="ov" id="ovm"><div class="msg" role="alertdialog" aria-modal="true">
-  <h2 id="msgt"></h2>
-  <p id="msgp"></p>
-  <div class="btns" id="msgb"></div>
-</div></div>
-<div class="ov" id="ovu"><div class="msg vup" role="alertdialog" aria-modal="true">
-  <h2 id="vut"></h2>
-  <div class="vub" id="vub"></div>
-  <div class="btns" id="vubtn"></div>
-</div></div>
+<div class="stage"><div class="win" id="win"></div></div>
 
 <script>
-// ---------------- languages: Traditional Chinese is the source text; the others are looked up by it ----------------
-const LANGS = [['en', 'English'], ['zh-Hant', '繁體中文'], ['zh-Hans', '简体中文'], ['ja', '日本語'], ['ko', '한국어']];
+// ---------------- languages: English is the source text; the others are looked up by it ----------------
+const LANGS = [['en', 'English'], ['ja', '日本語'], ['ko', '한국어'], ['zh-Hans', '简体中文'], ['zh-Hant', '繁體中文']];
 // small vector flags (emoji flags show up as two letters on Windows)
 const star = (cx, cy, r, rot = -90) => Array.from({ length: 10 }, (_, i) => { const a = (rot + i * 36) * Math.PI / 180, rr = i % 2 ? r * 0.4 : r; return (cx + rr * Math.cos(a)).toFixed(2) + ',' + (cy + rr * Math.sin(a)).toFixed(2); }).join(' ');
 const flag = (id, inner) => '<svg viewBox="0 0 30 20" aria-hidden="true"><clipPath id="fc-' + id + '"><rect width="30" height="20" rx="3.4"/></clipPath><g clip-path="url(#fc-' + id + ')">' + inner + '</g></svg>';
@@ -260,238 +250,312 @@ const t = (zh, vars) => {
   if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (vars[k] !== undefined ? vars[k] : m));
   return s;
 };
-const TITLE = { updating: 'Choose games to update', login: 'Waiting for login', idle: 'Choose games to update', running: 'Syncing pull history', done: 'Sync complete', error: 'Cannot sync' };
-const HINT = { login: 'Finish logging in on the tab that just opened.', running: 'Syncing, please wait.', error: 'You can close this tab, fix the problem and run it again.' };
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const LABEL = { wait: 'Not updated', run: 'Syncing', ok: 'Done', skip: 'Skipped', bad: 'Failed' };
 
 const ICONS = {{GAME_ICONS}};
-const cards = {};
 const $ = (id) => document.getElementById(id);
-let last = null, restarting = false;
-const dlg = (id, on) => $(id).classList.toggle('open', on);
-const mk = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
 const cmpVer = (a, b) => { const x = String(a || 0).split('.').map(Number), y = String(b || 0).split('.').map(Number); for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d; } return 0; };
-const IC_GEAR = '<svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>';
-const IC_SEARCH = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>';
-const IC_SYNC = '<svg class="spin" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg>';
-const IC_CHEV = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/></svg>';
 
-// static texts carry data-t; they are re-translated whenever the language changes
-document.querySelectorAll('[data-t]').forEach((e) => { e.dataset.zh = e.textContent; });
-function applyLang() {
-  document.documentElement.lang = LANG;
-  document.querySelectorAll('[data-t]').forEach((e) => { e.textContent = t(e.dataset.zh); });
-  document.title = t('Wishbook | Sync');
-  $('set').setAttribute('aria-label', t('Settings'));
-  $('langcur').textContent = (LANGS.find((l) => l[0] === LANG) || LANGS[1])[1];
-  $('langflag').innerHTML = FLAGS[LANG] || '';
-  document.querySelectorAll('#langmenu button').forEach((b) => b.classList.toggle('on', b.dataset.lang === LANG));
-  if (last) { $('set').dataset.key = ''; render(last); }
-}
+// ---------------- icons (the website's line style) ----------------
+const SV = (cls, inner, w = 2.2) => '<svg class="' + cls + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' + w + '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + inner + '</svg>';
+const IC = {
+  redo: SV('ic-redo', '<path d="M20 12a8 8 0 1 0-2.3 5.7M20 6v6h-6"/>'),
+  spin: SV('ic-redo spin', '<path d="M20 12a8 8 0 1 0-2.3 5.7M20 6v6h-6"/>'),
+  arr: SV('ic-arr', '<g class="mv"><path d="M5 12h14M13 6l6 6-6 6"/></g>'),
+  gear: SV('', '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>', 2),
+  ck: SV('', '<path d="M5 12.5l4.5 4.5L19 7.5"/>', 2.8),
+  x: SV('', '<path d="M7 7l10 10M17 7L7 17"/>', 2.8),
+  copy: SV('', '<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>'),
+  out: SV('', '<path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4"/><path d="M15 8l4 4-4 4M19 12H9"/>'),
+  chev: SV('chv', '<path d="M6 9l6 6 6-6"/>'),
+  globe: SV('ic-globe', '<circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.4 2.4 3.4 5.2 3.4 8.5s-1 6.1-3.4 8.5c-2.4-2.4-3.4-5.2-3.4-8.5s1-6.1 3.4-8.5z"/>'),
+  moon: SV('ic-moon', '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+  sun: SV('ic-sun', '<circle cx="12" cy="12" r="4"/><path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4L7 17M17 7l1.4-1.4"/>'),
+  bolt: SV('ic-bolt', '<path d="M13 3L5 13.5h6L10 21l8-10.5h-6z"/>'),
+  list: SV('ic-list', '<path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/>'),
+  help: SV('ic-help', '<circle cx="12" cy="12" r="8.5"/><path d="M9.6 9.4a2.5 2.5 0 1 1 3.6 2.3c-.8.4-1.2.9-1.2 1.8M12 16.6h.01"/>'),
+  tag: SV('ic-tag', '<path d="M20 12.6L12.6 20a2 2 0 0 1-2.8 0L4 14.2V4h10.2L20 9.8a2 2 0 0 1 0 2.8z"/><path d="M8.5 8.5h.01"/>'),
+  sliders: SV('', '<path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/>'),
+  discord: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M20.317 4.37a19.79 19.79 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.74 19.74 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.1 14.1 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .078-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .079.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.127 12.3 12.3 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/></svg>',
+  google: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.46a5.52 5.52 0 0 1-2.4 3.62v3h3.88c2.27-2.09 3.58-5.17 3.58-8.81z"/><path fill="#34A853" d="M12 24c3.24 0 5.96-1.07 7.94-2.91l-3.88-3a7.2 7.2 0 0 1-10.7-3.78H1.35v3.1A12 12 0 0 0 12 24z"/><path fill="#FBBC05" d="M5.36 14.31a7.2 7.2 0 0 1 0-4.62V6.59H1.35a12 12 0 0 0 0 10.82l4.01-3.1z"/><path fill="#EA4335" d="M12 4.75c1.76 0 3.34.6 4.58 1.8l3.43-3.43A12 12 0 0 0 1.35 6.59l4.01 3.1A7.2 7.2 0 0 1 12 4.75z"/></svg>',
+};
+const PNAME = { discord: 'Discord', google: 'Google' };
+const fl = (c) => '<span class="fl">' + (FLAGS[c] || '') + '</span>';
 
-// ---------------- dialogs ----------------
-document.querySelectorAll('.ov').forEach((o) => { o.onclick = (e) => { if (e.target === o || e.target.hasAttribute('data-close')) o.classList.remove('open'); }; });
-document.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; const top = [...document.querySelectorAll('.ov.open')].pop(); if (top) top.classList.remove('open'); });  // nested dialogs close one at a time
-function showMsg(title, text, buttons) {
-  $('msgt').textContent = title; $('msgp').textContent = text;
-  const row = $('msgb'); row.textContent = '';
-  buttons.forEach(([label, cls, fn]) => { const e = mk('button', cls, label); e.onclick = () => { dlg('ovm', false); if (fn) fn(); }; row.append(e); });
-  dlg('ovm', true);
-}
+// ---------------- state of this page ----------------
+let S = null;             // the last state the program sent
+let sel = null, picked = false, swapKey = null, shownKey = null;  // the game on show; picked: the user chose one, so stop following the one that is syncing
+let sheet = false, langOpen = false, fold_ = {}, modal = null, lastModal = '', copied = false, restarting = false;
+let lastCheck = 0, pendingCheck = 0, promptedStartup = false, localSettingsAt = 0, errShown = '';
+const badShown = {};     // game -> the failure text whose popup was already opened
+let mode = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+document.documentElement.dataset.mode = mode;
+
 function post(path, body) { return fetch(path, { method: 'POST', headers: { 'X-Wishbook': '1', 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}) }).catch(() => {}); }
 const startUpdate = () => post('/update');
-function checkNow() { return post('/check'); }
-// "V1.2.3 Wishbook version update": what is new and two buttons (the dialog that pops up when a new version is found)
-function versionDialog(v) {
-  $('vut').textContent = t('V{v} Wishbook Version Update', { v: v.latest });
-  const body = $('vub'); body.textContent = '';
-  const fresh = (v.history || []).filter((h) => cmpVer(h.version, v.current) > 0 && h.note);
-  if (fresh.length) fresh.forEach((h) => body.append(mk('div', 'vh', 'V' + h.version + (h.date ? '  ' + h.date : '')), mk('p', '', h.note)));
-  else body.append(mk('p', '', v.note || t('A new version is available')));
-  const row = $('vubtn'); row.textContent = '';
-  [[t('Later'), 'btn ghost'], [t('Update now'), 'btn', startUpdate]].forEach(([label, cls, fn]) => { const e = mk('button', cls, label); e.onclick = () => { dlg('ovu', false); if (fn) fn(); }; row.append(e); });
-  dlg('ovu', true);
+function changeSetting(patch) { localSettingsAt = Date.now(); if (S) S.settings = { ...(S.settings || {}), ...patch }; return post('/settings', patch); }
+function setLang(code) { if (code === LANG) return; LANG = code; document.documentElement.lang = code; document.title = t('Wishbook | Sync'); changeSetting({ lang: code }); }
+function setMode(m) { mode = m; document.documentElement.dataset.mode = m; }
+
+function when(iso) {
+  if (!iso) return '';
+  const d = new Date(iso); if (isNaN(d)) return '';
+  const now = new Date(), day = (x) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const hm = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  const diff = Math.round((day(now) - day(d)) / 864e5);
+  if (diff === 0) return t('Today {t}', { t: hm });
+  if (diff === 1) return t('Yesterday {t}', { t: hm });
+  return (d.getMonth() + 1) + '/' + String(d.getDate()).padStart(2, '0') + ' ' + hm;
 }
-let pendingCheck = 0, promptedStartup = false;  // pendingCheck: when the user pressed "Check"; the verdict opens once the answer is in
-function verdictDialog(v) {
-  if (!v.latest) return showMsg(t('Notice'), t('Cannot reach the site. Please try again later.'), [[t('OK'), 'btn']]);
-  if (!v.newer) return showMsg(t('Notice'), t('You are on the latest version. No update needed.'), [[t('OK'), 'btn']]);
-  if (!v.canUpdate) return showMsg(t('New version found'), t('New version V{v} found.', { v: v.latest }), [[t('OK'), 'btn']]);
-  versionDialog(v);
-}
-function openChangelog(v) {
-  const nav = $('clv'), det = $('cld'), items = v.history || [];
-  nav.textContent = ''; det.textContent = '';
-  const show = (h, b) => {
-    nav.querySelectorAll('button').forEach((x) => x.classList.toggle('on', x === b));
-    det.textContent = '';
-    det.append(mk('h4', '', t('Updated:')), mk('p', '', h.date || '—'), mk('h4', '', t('What\'s new:')), mk('p', '', h.note || t('(no description)')));
-  };
-  if (!items.length) det.append(mk('p', '', t('No changelog available (it cannot be loaded while offline).')));
-  items.forEach((h, i) => {
-    const b = mk('button'); b.append(mk('span', '', 'V' + h.version));
-    if (h.version === v.current) b.append(mk('span', 'ht', t('Current')));
-    else if (v.newer && cmpVer(h.version, v.current) > 0) b.append(mk('span', 'ht new', t('New')));
-    b.onclick = () => show(h, b); nav.append(b);
-    if (!i) show(h, b);
-  });
-  dlg('ovc', true);
+const eff = (g) => (g.queued ? 'q' : g.status);  // the status that is shown: queued wins over the old result
+const dotOf = (g) => ({ run: 'run', ok: 'ok', bad: 'bad', q: 'q' }[eff(g)] || '');
+function metaOf(g) {
+  const e = eff(g);
+  if (e === 'run') return g.pool ? t(g.pool) + (g.page ? '・' + t('Page {n}', { n: g.page }) : '') : (g.detail || t('Getting ready…'));
+  if (e === 'q') return t('Waiting for the previous game');
+  if (e === 'ok' || e === 'bad' || e === 'skip') return g.detail || '';
+  return g.last ? t('Last synced: {t}', { t: when(g.last) }) : t('Never synced');
 }
 
-// ---------------- settings window ----------------
-let lastCheck = 0;
-function autoCheck() {  // opening "About" asks the site (at most every 20s; straight away when there is no verdict yet)
-  const v = last && last.version;
-  if (Date.now() - lastCheck < 20000 && v && v.latest) return;
-  lastCheck = Date.now(); checkNow();
+// ---------------- pieces ----------------
+const gh = (icon, title) => '<div class="gh">' + IC[icon] + '<span>' + title + '</span></div>';
+const li = (icon, title, sub, right) => '<div class="li"><span class="rico">' + IC[icon] + '</span><div class="ltx"><b>' + title + '</b>' + (sub ? '<small>' + sub + '</small>' : '') + '</div>' + (right || '') + '</div>';
+const lfold = (key, icon, title, inner) => '<button class="li lf ' + (fold_[key] ? 'open' : '') + '" data-act="fold" data-k="' + key + '" aria-expanded="' + !!fold_[key] + '"><span class="rico">' + IC[icon] + '</span><div class="ltx"><b>' + title + '</b></div>' + IC.chev + '</button><div class="acc ' + (fold_[key] ? 'on' : '') + '"><div class="in"><div class="pad">' + inner + '</div></div></div>';
+function langItems() {
+  return LANGS.map(([c, l]) => '<button class="mi ' + (c === LANG ? 'on' : '') + '" data-act="lang" data-k="' + c + '">' + fl(c) + '<span>' + l + '</span>' + (c === LANG ? IC.ck : '') + '</button>').join('');
 }
-function showTab(name) {
-  if (name === 'about') autoCheck();
-  document.querySelectorAll('.snav [data-tab]').forEach((b) => b.classList.toggle('on', b.dataset.tab === name));
-  ['gen', 'how', 'about'].forEach((k) => { $('tab-' + k).hidden = k !== name; });
-}
-document.querySelectorAll('.snav [data-tab]').forEach((b) => { b.onclick = () => showTab(b.dataset.tab); });
-$('set').onclick = () => { showTab(last && last.version && last.version.newer ? 'about' : 'gen'); dlg('ovs', true); };  // a new version opens straight on "About"
-// language dropdown + auto-update switch
-const langMenu = $('langmenu'), langBtn = $('langbtn');
-const IC_CK = '<svg class="ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>';
-const menuIn = mk('div', 'menui'), menuList = mk('div', 'mlist'); menuIn.append(menuList); langMenu.append(menuIn);  // the box grows downward from the button
-LANGS.forEach(([code, label]) => { const b = mk('button'); b.dataset.lang = code; b.innerHTML = '<span class="fl">' + FLAGS[code] + '</span><span class="lb"></span>' + IC_CK; b.querySelector('.lb').textContent = label; b.onclick = () => { setLang(code); closeMenu(); }; menuList.append(b); });
-function closeMenu() { langMenu.classList.remove('open'); langBtn.setAttribute('aria-expanded', 'false'); }
-langBtn.onclick = (e) => { e.stopPropagation(); const on = !langMenu.classList.contains('open'); langMenu.classList.toggle('open', on); langBtn.setAttribute('aria-expanded', String(on)); };
-document.addEventListener('click', closeMenu);
-applyLang();  // flag + label of the current language (also marks the right menu row)
-let localSettingsAt = 0;  // a change made here wins over a state that was fetched before the program has stored it
-function changeSetting(patch) { localSettingsAt = Date.now(); if (last) last.settings = { ...(last.settings || {}), ...patch }; return post('/settings', patch); }
-function setLang(code) { if (code === LANG) return; LANG = code; changeSetting({ lang: code }); applyLang(); }
-$('autoupd').onclick = () => { const on = $('autoupd').getAttribute('aria-checked') !== 'true'; $('autoupd').setAttribute('aria-checked', String(on)); changeSetting({ autoUpdate: on }); };
-function renderSettings(st) {
-  if (!st || Date.now() - localSettingsAt < 1500) return;
-  if (st.lang !== LANG && LANGS.some((l) => l[0] === st.lang)) { LANG = st.lang; applyLang(); }
-  $('autoupd').setAttribute('aria-checked', String(!!st.autoUpdate));
+const iconUrl = () => document.querySelector('link[rel=icon]').href;
+
+function header(s) {
+  const signed = !!s.member && !(s.login && s.login.needed);
+  const nw = s.version && s.version.newer;
+  return '<div class="hd"><img class="lg" src="' + esc(iconUrl()) + '" alt=""><div class="tt"><b>' + esc(t('Wishbook')) + '</b></div>'
+    + (signed ? '<div class="who"><i>' + esc((s.member || '?').slice(0, 1).toUpperCase()) + '</i><span>' + esc(s.member) + '</span></div>' : '')
+    + '<button class="ib" data-act="sheet" aria-label="' + esc(t('Settings')) + '" title="' + esc(nw ? t('New version V{v} (open for details)', { v: s.version.latest }) : t('Settings')) + '">' + IC.gear + (nw ? '<span class="nw">NEW</span>' : '') + '</button></div>';
 }
 
-function renderVersion(v, s) {
-  const btn = $('set');
-  if (!v) return;
-  if (pendingCheck && !v.checking && Date.now() - pendingCheck > 900) { pendingCheck = 0; verdictDialog(v); }
-  // opening the program: if a new version is waiting (and "allow automatic updates" is off) show the update dialog once
-  if (!promptedStartup && v.newer && v.canUpdate && s.phase === 'idle' && s.settings && !s.settings.autoUpdate) { promptedStartup = true; versionDialog(v); }
-  const key = JSON.stringify([v, s.phase, s.notice, !!pendingCheck, LANG]);
-  if (btn.dataset.key === key) return;
-  btn.dataset.key = key;
-  btn.className = 'ib' + (v.newer ? ' new' : '');
-  btn.innerHTML = v.newer ? IC_GEAR + '<span>' + t('New version') + '</span><b>NEW</b>' : IC_GEAR;  // the settings button itself carries the "new version" look
-  btn.title = v.newer ? t('New version V{v} (open for details)', { v: v.latest }) : t('Settings');
-  $('dotAbout').hidden = !v.newer;
-  const box = $('vabout'); box.textContent = '';
-  const app = mk('div', 'app'), img = mk('img'); img.src = document.querySelector('link[rel=icon]').href; img.alt = '';
-  app.append(img, mk('b', '', 'Wishbook'), mk('i'), mk('span', '', 'V' + v.current)); box.append(app);
-  if (v.newer) {  // the update is its own group, above the log / check group
-    const upg = mk('div', 'grp'), busy = s.phase === 'updating', pct = (/(\d+)%/.exec(s.notice || '') || [])[1];
-    const when = (v.history || []).find((h) => h.version === v.latest);
-    const row = mk('div', 'rw newv'), left = mk('div');
-    left.append(mk('b', '', t('New version V{v} found', { v: v.latest })), mk('small', 'warn', [v.size ? (v.size / 1048576).toFixed(1) + ' MB' : '', when && when.date].filter(Boolean).join('・') || t('A new version is available')));
-    row.append(left);
-    if (v.canUpdate) { const b = mk('button', 'rb on', busy ? (pct ? t('Downloading {p}%', { p: pct }) : t('Updating')) : t('Update now')); b.disabled = s.phase !== 'idle'; b.onclick = startUpdate; row.append(b); }
-    if (busy) { const bar = mk('div', 'upbar'), fill = mk('i'); fill.style.width = (pct || 3) + '%'; bar.append(fill); row.append(bar); }
-    if (v.error) row.append(mk('div', 'uerr', v.error));
-    upg.append(row); box.append(upg);
-  }
-  const grp = mk('div', 'grp');
-  const log = mk('button', 'rw lnk'), chev = mk('span', 'chev'); chev.innerHTML = IC_CHEV;
-  log.append(mk('span', '', t('View changelog')), chev); log.onclick = () => openChangelog(v);
-  const chk = mk('div', 'rw'), busyChk = v.checking || !!pendingCheck;
-  const b = mk('button', 'rb'); b.innerHTML = (busyChk ? IC_SYNC : IC_SEARCH) + '<span>' + t('Check') + '</span>'; b.disabled = busyChk;
-  b.onclick = () => { pendingCheck = Date.now(); lastCheck = pendingCheck; btn.dataset.key = ''; checkNow(); renderVersion(v, s); };
-  chk.append(mk('span', '', t('Check for updates')), b);
-  grp.append(log, chk); box.append(grp);
-}
-
-// ---------------- the main card ----------------
-const ask = (games) => post('/sync', { games });
-$('all').onclick = () => ask(Object.keys(cards));
-const PNAME = { discord: 'Discord', google: 'Google' };
-let loginKey = '';
-function renderLogin(lg) {
-  const key = JSON.stringify([lg.providers, LANG]);
-  if (key !== loginKey) {  // rebuilt only when something changed
-    loginKey = key;
-    const box = $('provs'); box.textContent = '';
-    if (!lg.providers.length) box.textContent = t('Sign-in is not open yet.');
-    for (const p of lg.providers) {
-      const b = document.createElement('button'); b.className = 'go';
-      b.textContent = t('Sign in with {p}', { p: PNAME[p] || p });
-      b.onclick = () => post('/login', { provider: p });
-      box.append(b);
-    }
-  }
-  $('lerr').textContent = lg.error || '';
-  $('lerr').hidden = !lg.error;
-}
-function render(s) {
-  renderSettings(s.settings);
-  document.body.classList.toggle('err', s.phase === 'error');
+function loginBody(s) {
   const lg = s.login || {};
-  const signIn = !!lg.needed && !lg.waiting;  // the card is up: the games stay hidden until the account is signed in
-  $('lgn').hidden = !signIn; $('list').hidden = !!lg.needed;
-  if (signIn) renderLogin(lg);
-  $('wait').hidden = !(lg.needed && lg.waiting && lg.code); $('wcode').textContent = lg.code || '';
-  $('ttl').textContent = t(signIn ? 'Sign in' : (TITLE[s.phase] || 'Syncing pull history'));
-  $('who').textContent = s.member || '';
-  const hint = HINT[s.phase];
-  $('hint').textContent = hint ? t(hint) : '';
-  $('hint').hidden = !hint || !!(lg.waiting && lg.code);  // the yellow line above already says it while the code is on screen
-  $('act').hidden = !['idle', 'running', 'updating', 'done'].includes(s.phase) || !s.site || !!lg.needed;
-  $('all').hidden = s.phase === 'done';
-  $('all').disabled = s.phase !== 'idle';
-  if (s.site) $('go').href = s.site;
-  renderVersion(s.version, s);
-  const n = $('notice');
-  n.hidden = !s.notice || s.phase === 'updating';  // the update progress is written inside the dialog only
-  n.textContent = s.notice || '';
-  n.className = 'notice' + (s.phase === 'error' ? ' bad' : '');
-  s.games.forEach((g, i) => {
-    let c = cards[g.key];
-    if (!c) {
-      const el = document.createElement('div');
-      el.className = 'g';
-      el.style.animationDelay = (0.15 + i * 0.08) + 's';
-      el.innerHTML = '<div class="row"><img class="ic" alt=""><div class="info"><div class="name"></div><div class="detail"></div></div><div class="side"><span class="pill"></span><button class="upd"></button></div></div><div class="bar"><b></b></div>';
-      $('list').append(el);
-      el.querySelector('.ic').src = ICONS[g.key] || '';
-      el.querySelector('.upd').onclick = () => ask([g.key]);
-      c = cards[g.key] = { el, name: el.querySelector('.name'), detail: el.querySelector('.detail'), pill: el.querySelector('.pill'), btn: el.querySelector('.upd'), fill: el.querySelector('.bar b') };
-    }
-    c.name.textContent = t(g.name);
-    c.detail.textContent = g.detail || '';
-    c.detail.hidden = !g.detail;
-    c.pill.textContent = g.queued ? t('Queued') : t(LABEL[g.status]);
-    c.pill.className = 'pill ' + g.status;
-    c.pill.hidden = g.status === 'wait' && !g.queued && s.phase === 'idle';  // nothing asked yet: just the button
-    c.btn.hidden = !['idle', 'running', 'updating'].includes(s.phase) || g.status === 'run' || g.queued;
-    c.btn.disabled = s.phase !== 'idle';
-    c.btn.textContent = t(g.status === 'wait' ? 'Update' : 'Update again');
-    c.btn.classList.toggle('again', g.status !== 'wait');
-    c.el.classList.toggle('running', g.status === 'run' && g.progress != null);
-    c.fill.style.width = Math.round((g.progress || 0) * 100) + '%';
-  });
+  if (lg.waiting) {
+    return '<div class="cover" data-key="code"><h2>' + esc(t('Waiting for login')) + '</h2><p>' + esc(t('Finish logging in on the tab that just opened, then enter the code shown in this window.')) + '</p>'
+      + '<div class="code">' + esc(lg.code || '····') + '</div>'
+      + '<button class="btn sm ghost copy" data-act="copy" ' + (lg.code ? '' : 'disabled') + '>' + (copied ? IC.ck + esc(t('Copied')) : IC.copy + esc(t('Copy code'))) + '</button>'
+      + '<div class="warn">' + esc(t('The sign-in page will ask for this code. Do not enter it if you did not just open this program yourself.')) + '</div></div>';
+  }
+  const provs = (lg.providers || []).map((p) => '<button class="prov ' + esc(p) + '" data-act="login" data-k="' + esc(p) + '">' + (IC[p] || '') + esc(t('Sign in with {p}', { p: PNAME[p] || p })) + '</button>').join('');
+  return '<div class="cover" data-key="login"><img class="big" src="' + esc(iconUrl()) + '" alt=""><h2>' + esc(t('Sign in to Wishbook')) + '</h2>'
+    + '<p>' + esc(t('Sign in to sync your pull records to your account.')) + '</p>'
+    + (provs || '<p>' + esc(t('Sign-in is not open yet.')) + '</p>')
+    + (lg.error ? '<div class="lerr">' + esc(lg.error) + '</div>' : '') + '</div>';
 }
 
+function mainBody(s) {
+  const games = s.games, g = games.find((x) => x.key === sel) || games[0];
+  const idle = s.phase === 'idle', canAsk = ['idle', 'running', 'updating'].includes(s.phase);
+  const dock = games.map((x, i) => { const d = dotOf(x); return '<button class="gi ' + (x.key === g.key ? 'on' : '') + '" data-act="pick" data-k="' + x.key + '" style="animation-delay:' + (i * 60) + 'ms" title="' + esc(t(x.name)) + '"><img src="' + esc(ICONS[x.key] || '') + '" alt="">' + (d ? '<i class="bd ' + d + '"></i>' : '') + '</button>'; }).join('');
+  const e = eff(g);
+  const pools = (g.pools || []).map((p) => {
+    const st = p.status;
+    let c;
+    if (st === 'ok') c = t('{n} records', { n: p.n });
+    else if (st === 'run') c = g.page ? t('Page {n}', { n: g.page }) : t('Syncing');
+    else if (st === 'bad') c = t('Failed');
+    else c = (e === 'run' || e === 'bad') ? t('Not started') : t('Not updated');
+    const mark = st === 'ok' ? IC.ck : st === 'bad' ? IC.x : st === 'run' ? IC.redo : '';
+    return '<div class="pl ' + st + '"><span class="d">' + mark + '</span><span class="n" title="' + esc(t(p.label)) + '">' + esc(t(p.label)) + '</span><span class="c">' + esc(c) + '</span></div>';
+  }).join('');
+  const chip = e === 'wait' ? '' : (e === 'bad' ? '<button class="chip bad" data-act="fail" data-k="' + g.key + '">' + IC.x + esc(t('Failed')) + '</button>'
+    : '<span class="chip ' + e + '">' + (e === 'ok' ? IC.ck : '') + esc(e === 'q' ? t('Queued') : t(LABEL[e] || LABEL.wait)) + '</span>');
+  const run = e === 'run' || e === 'q';
+  const label = e === 'run' ? t('Syncing') : e === 'q' ? t('Queued') : (g.status === 'wait' ? t('Update') : t('Update again'));
+  const hero = '<div class="body" data-key="main"><div class="hero"><div class="top"><img class="gimg ' + (swapKey === g.key ? 'pop' : '') + '" src="' + esc(ICONS[g.key] || '') + '" alt=""><div class="tx"><div class="nm">' + esc(t(g.name)) + '</div><div class="meta">' + esc(metaOf(g)) + '</div></div>' + chip + '</div>'
+    + '<div class="pools' + ((g.pools || []).length > 4 ? ' many' : '') + '">' + pools + '</div>'
+    + '<button class="btn" data-act="sync" data-k="' + g.key + '" ' + (run || !idle ? 'disabled' : '') + ' ' + (canAsk ? '' : 'hidden') + '>' + IC.redo + esc(label) + '</button></div></div>';
+  const ft = '<div class="ft" data-key="ft"><button class="btn alt" data-act="all" ' + (idle ? '' : 'disabled') + '>' + IC.redo + esc(t('Update all')) + '</button><a class="btn" href="' + esc(s.site || '#') + '" target="_blank" rel="noopener">' + esc(t('Open stats site')) + IC.arr + '</a></div>';
+  return '<div class="dock" data-key="dock">' + dock + '</div>' + hero + ft;
+}
+
+function settings(s) {
+  const v = s.version || {}, st = s.settings || {};
+  const signed = !!s.member && !(s.login && s.login.needed);
+  const cur = LANGS.find((l) => l[0] === LANG) || LANGS[0];
+  const langBtn = '<div class="dd"><button class="selb ' + (langOpen ? 'open' : '') + '" data-act="langopen" aria-expanded="' + langOpen + '">' + fl(cur[0]) + '<span>' + cur[1] + '</span>' + IC.chev + '</button><div class="menu ' + (langOpen ? 'on' : '') + '"><div class="in">' + langItems() + '</div></div></div>';
+  const busy = s.phase === 'updating', pct = (/(\d+)%/.exec(s.notice || '') || [])[1];
+  let ver;
+  if (v.newer) {
+    const newest = (v.history || []).find((h) => h.version === v.latest);
+    const sub = [v.size ? (v.size / 1048576).toFixed(1) + ' MB' : '', newest && newest.date].filter(Boolean).join('・') || t('A new version is available');
+    const right = v.canUpdate ? '<button class="btn sm" data-act="update" ' + (s.phase !== 'idle' ? 'disabled' : '') + '>' + IC.redo + esc(busy ? (pct ? t('Downloading {p}%', { p: pct }) : t('Updating')) : t('Update now')) + '</button>' : '';
+    ver = li('tag', esc(t('New version V{v} found', { v: v.latest })), esc(sub), right)
+      + (busy ? '<div class="bar upbar"><i style="width:' + (pct || 3) + '%"></i></div>' : '')
+      + (v.error ? '<div class="ltx" style="padding:0 .875rem .75rem"><small class="err">' + esc(v.error) + '</small></div>' : '');
+  } else {
+    const checking = v.checking || !!pendingCheck;
+    ver = li('tag', esc(t('Up to date')), esc(t('Current V{v}', { v: v.current || '' })), '<button class="btn sm" data-act="check" ' + (checking ? 'disabled' : '') + '>' + (checking ? IC.spin : IC.redo) + esc(t('Check')) + '</button>');
+  }
+  const hist = (v.history || []).length
+    ? '<div class="logs">' + v.history.map((h) => '<div><b>V' + esc(h.version) + '</b><span>' + esc(h.date) + '</span>' + (h.note ? '<br>' + esc(h.note) : '') + '</div>').join('') + '</div>'
+    : '<div class="logs"><div><span>' + esc(t('No changelog available (it cannot be loaded while offline).')) + '</span></div></div>';
+  const steps = ['Open the in-game pull history once, so the program can find the latest history link.',
+    'Come back here and press "Update" next to a game, or "Update all". Nothing runs automatically.',
+    'The first time, choose how to sign in, sign in on the page that opens, then enter the code shown in this window. You will stay signed in afterwards.',
+    'When it is done, open the stats site to see the result. Closing this tab ends the program.'];
+  const head = signed
+    ? '<span class="av">' + esc((s.member || '?').slice(0, 1).toUpperCase()) + '</span><div class="ltx"><b>' + esc(s.member) + '</b><small>' + esc(t('Signed in')) + '</small></div><button class="btn sm ghost" data-act="logout" ' + (s.phase === 'idle' ? '' : 'disabled') + '>' + IC.out + esc(t('Sign out')) + '</button>'
+    : '<div class="ltx"><b>' + esc(t('Settings')) + '</b></div>';
+  return '<div class="sheet"><div class="shd">' + head + '<button class="ib close" data-act="sheet" aria-label="' + esc(t('Close')) + '">' + IC.x + '</button></div><div class="scroll">'
+    + '<section>' + gh('sliders', esc(t('General'))) + '<div class="gc">'
+    + li('globe', esc(t('Display language')), '', langBtn)
+    + li(mode === 'dark' ? 'moon' : 'sun', esc(t('Appearance')), esc(mode === 'dark' ? t('Dark') : t('Light')), '<button class="theme" data-act="theme" aria-label="' + esc(t('Switch appearance')) + '"><span class="orb"></span><i></i><i></i><i></i></button>')
+    + '</div></section>'
+    + '<section>' + gh('redo', esc(t('Updates'))) + '<div class="gc">'
+    + ver
+    + li('bolt', esc(t('Allow automatic updates')), esc(t('When a new version is found, download and install it automatically, then restart.')), '<button class="sw" role="switch" data-act="auto" aria-checked="' + !!st.autoUpdate + '"><i></i></button>')
+    + lfold('log', 'list', esc(t('Changelog')), hist)
+    + '</div></section>'
+    + '<section>' + gh('help', esc(t('Help'))) + '<div class="gc">'
+    + lfold('how', 'help', esc(t('How to use')), '<ol class="steps">' + steps.map((x) => '<li>' + esc(t(x)) + '</li>').join('') + '</ol><ul class="notes"><li>' + esc(t('If it says the history was never opened or the link has expired, open the in-game pull history again and then press Update.')) + '</li><li>' + esc(t('Your login is stored on this PC in %APPDATA%\\wishbook. Do not share it.')) + '</li></ul>')
+    + '</div></section></div></div>';
+}
+
+function modalHtml(s) {
+  if (!modal) return lastModal;  // keeps the content while the popup plays its way out
+  let h = '';
+  const ok = '<button class="btn" data-act="close">' + esc(t('OK')) + '</button>';
+  if (modal.type === 'fail') {
+    const g = s.games.find((x) => x.key === modal.key) || s.games[0];
+    h = '<div class="card"><img class="gimg" src="' + esc(ICONS[g.key] || '') + '" alt=""><h4>' + esc(t('{name} failed to sync', { name: t(g.name) })) + '</h4><div class="why">' + esc(g.detail) + '</div><div class="row2">' + ok + '</div></div>';
+  } else if (modal.type === 'err') {
+    h = '<div class="card"><h4>' + esc(t('Cannot sync')) + '</h4><div class="why">' + esc(modal.text) + '</div><div class="row2">' + ok + '</div></div>';
+  } else if (modal.type === 'msg') {
+    h = '<div class="card"><h4>' + esc(modal.title) + '</h4><p>' + esc(modal.text) + '</p><div class="row2">' + ok + '</div></div>';
+  } else if (modal.type === 'update') {
+    const v = s.version || {}, busy = s.phase === 'updating', pct = (/(\d+)%/.exec(s.notice || '') || [])[1];
+    const fresh = (v.history || []).filter((x) => cmpVer(x.version, v.current) > 0 && x.note);
+    const notes = fresh.length ? fresh.map((x) => '<b>V' + esc(x.version) + (x.date ? '  ' + esc(x.date) : '') + '</b><p>' + esc(x.note) + '</p>').join('') : '<p>' + esc(v.note || t('A new version is available')) + '</p>';
+    h = '<div class="card"><h4>' + esc(t('V{v} Wishbook Version Update', { v: v.latest })) + '</h4><div class="vers">' + notes + '</div>'
+      + (busy ? '<div class="bar upbar"><i style="width:' + (pct || 3) + '%"></i></div>' : '')
+      + '<div class="row2"><button class="btn ghost" data-act="close" ' + (busy ? 'disabled' : '') + '>' + esc(t('Later')) + '</button><button class="btn" data-act="update" ' + (busy ? 'disabled' : '') + '>' + esc(busy ? (pct ? t('Downloading {p}%', { p: pct }) : t('Updating')) : t('Update now')) + '</button></div></div>';
+  }
+  return (lastModal = '<div class="modal">' + h + '</div>');
+}
+
+// ---------------- drawing: only what changed is touched ----------------
+function morph(dst, src) {
+  const a = [...dst.childNodes], b = [...src.childNodes];
+  b.forEach((n, i) => {
+    const o = a[i];
+    if (!o) { dst.append(n.cloneNode(true)); return; }
+    if (o.nodeType !== n.nodeType || o.nodeName !== n.nodeName || (n.nodeType === 1 && o.getAttribute('data-key') !== n.getAttribute('data-key'))) { dst.replaceChild(n.cloneNode(true), o); return; }
+    if (n.nodeType === 3) { if (o.nodeValue !== n.nodeValue) o.nodeValue = n.nodeValue; return; }
+    if (n.nodeType !== 1) return;
+    for (const at of [...o.attributes]) if (!n.hasAttribute(at.name)) o.removeAttribute(at.name);
+    for (const at of [...n.attributes]) if (o.getAttribute(at.name) !== at.value) o.setAttribute(at.name, at.value);
+    morph(o, n);
+  });
+  for (let i = a.length - 1; i >= b.length; i--) dst.removeChild(a[i]);
+}
+function fadeEdges() {
+  const b = document.querySelector('.sheet .scroll'); if (!b) return;
+  b.classList.toggle('fade-t', b.scrollTop > 2);
+  b.classList.toggle('fade-b', b.scrollTop + b.clientHeight < b.scrollHeight - 2);
+}
+document.addEventListener('scroll', fadeEdges, true);
+
+function verdictDialog(v) {
+  if (!v.latest) modal = { type: 'msg', title: t('Notice'), text: t('Cannot reach the site. Please try again later.') };
+  else if (!v.newer) modal = { type: 'msg', title: t('Notice'), text: t('You are on the latest version. No update needed.') };
+  else if (!v.canUpdate) modal = { type: 'msg', title: t('New version found'), text: t('New version V{v} found.', { v: v.latest }) };
+  else modal = { type: 'update' };
+}
+
+function render() {
+  const s = S; if (!s) return;
+  // things that open by themselves
+  const v = s.version || {};
+  if (pendingCheck && !v.checking && Date.now() - pendingCheck > 900) { pendingCheck = 0; verdictDialog(v); }
+  if (!promptedStartup && v.newer && v.canUpdate && s.phase === 'idle' && s.settings && !s.settings.autoUpdate) { promptedStartup = true; modal = { type: 'update' }; }
+  if (s.phase === 'updating' && !(modal && modal.type === 'update')) { modal = { type: 'update' }; sheet = false; }
+  if (s.phase === 'error' && s.notice && errShown !== s.notice) { errShown = s.notice; modal = { type: 'err', text: s.notice }; }
+  for (const g of s.games) {
+    if (g.status === 'bad' && g.detail && badShown[g.key] !== g.detail) {
+      badShown[g.key] = g.detail;
+      if (!modal) { modal = { type: 'fail', key: g.key }; if (!picked) sel = g.key; }
+    }
+    if (g.status !== 'bad') delete badShown[g.key];
+  }
+  // which game is on show: follow the one that is syncing until the user picks
+  if (!sel && s.games.length) sel = s.games[0].key;
+  if (!picked) { const f = s.games.find((g) => g.status === 'run' && !g.queued); if (f) sel = f.key; }
+  if (shownKey !== sel) { shownKey = sel; swapKey = sel; }
+
+  const lg = s.login || {};
+  const html = header(s) + (lg.needed ? loginBody(s) : mainBody(s))
+    + '<div class="layer ' + (sheet ? 'on' : '') + '" data-key="lsheet"><div class="scrim" data-act="sheet"></div>' + settings(s) + '</div>'
+    + '<div class="layer ' + (modal ? 'on' : '') + '" data-key="lmodal"><div class="scrim" data-act="close"></div>' + modalHtml(s) + '</div>';
+  const tmp = document.createElement('div'); tmp.innerHTML = html;
+  morph($('win'), tmp);
+  fadeEdges();
+  swapKey = null;
+}
+
+// ---------------- events ----------------
+function autoCheck() {  // opening the settings asks the site (at most every 20s; straight away when there is no verdict yet)
+  const v = S && S.version;
+  if (Date.now() - lastCheck < 20000 && v && v.latest) return;
+  lastCheck = Date.now(); post('/check');
+}
+document.addEventListener('click', (e) => {
+  if (langOpen && !e.target.closest('.dd')) langOpen = false;
+  const a = e.target.closest('[data-act]');
+  if (!a || a.disabled) { render(); return; }
+  const act = a.dataset.act, k = a.dataset.k;
+  if (act === 'sheet') { sheet = !sheet; langOpen = false; if (sheet) autoCheck(); }
+  else if (act === 'close') modal = null;
+  else if (act === 'fail') modal = { type: 'fail', key: k };
+  else if (act === 'pick') { picked = true; sel = k; }
+  else if (act === 'sync') { picked = true; sel = k; post('/sync', { games: [k] }); }
+  else if (act === 'all') post('/sync', { games: S.games.map((g) => g.key) });
+  else if (act === 'login') post('/login', { provider: k });
+  else if (act === 'copy') { const c = S.login && S.login.code; if (c) { try { navigator.clipboard.writeText(c); } catch (err) { /* the code can still be selected by hand */ } copied = true; setTimeout(() => { copied = false; render(); }, 1600); } }
+  else if (act === 'lang') { setLang(k); langOpen = false; }
+  else if (act === 'langopen') langOpen = !langOpen;
+  else if (act === 'fold') fold_[k] = !fold_[k];
+  else if (act === 'theme') { const m = mode === 'dark' ? 'light' : 'dark'; setMode(m); changeSetting({ theme: m }); }
+  else if (act === 'auto') changeSetting({ autoUpdate: !(S.settings && S.settings.autoUpdate) });
+  else if (act === 'check') { pendingCheck = Date.now(); lastCheck = pendingCheck; post('/check'); }
+  else if (act === 'update') startUpdate();
+  else if (act === 'logout') { sheet = false; post('/logout'); }
+  render();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (langOpen) langOpen = false; else if (modal) modal = null; else if (sheet) sheet = false; else return;
+  render();
+});
+
+function applyState(st) {
+  if (!st || Date.now() - localSettingsAt < 1500) return;
+  if (st.lang !== LANG && LANGS.some((l) => l[0] === st.lang)) { LANG = st.lang; document.documentElement.lang = LANG; document.title = t('Wishbook | Sync'); }
+  if (st.theme === 'light' || st.theme === 'dark') setMode(st.theme);
+}
 async function tick() {
   try {
     const r = await fetch('/state', { cache: 'no-store' });
-    last = await r.json();
-    if (restarting && !last.restarting) { location.reload(); return; }
-    restarting = !!last.restarting;
-    render(last);
-    if (last.phase === 'done' || last.phase === 'error') return;
+    S = await r.json();
+    if (restarting && !S.restarting) { location.reload(); return; }
+    restarting = !!S.restarting;
+    applyState(S.settings);
+    render();
+    if (S.phase === 'done' || S.phase === 'error') return;
   } catch (e) {
     if (restarting) { setTimeout(tick, 800); return; }  // the new process is taking over this port
     return;  // the local server is gone: keep what is on screen
   }
   setTimeout(tick, 700);
 }
+document.title = t('Wishbook | Sync');
 tick();
 </script>
 """

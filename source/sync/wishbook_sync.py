@@ -28,7 +28,7 @@ from ui_page import PAGE as PAGE_TEMPLATE
 PAGE = (PAGE_TEMPLATE.replace('{{ICON}}', ICON).replace('{{GAME_ICONS}}', json.dumps(GAME_ICONS))
         .replace('{{I18N}}', json.dumps(PROGRAM_TEXT, ensure_ascii=False).replace('</', '<\\/')))
 
-VERSION = '0.2.0'  # bumped by tools/release.py, which also writes site/version.json
+VERSION = '0.3.0'  # bumped by tools/release.py, which also writes site/version.json
 FROZEN = bool(getattr(sys, 'frozen', False))
 EXE = sys.executable if FROZEN else None
 HERE = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
@@ -114,9 +114,10 @@ class Reporter:
         self.state = {
             'phase': 'running', 'member': '', 'notice': '', 'site': '', 'restarting': False,
             'login': {'needed': False, 'waiting': False, 'providers': [], 'error': '', 'code': ''},
-            'settings': {'lang': LANG, 'autoUpdate': False},
+            'settings': {'lang': LANG, 'autoUpdate': False, 'theme': ''},
             'version': {'current': VERSION, 'latest': None, 'newer': False, 'note': '', 'url': '', 'sha256': '', 'checking': False, 'canUpdate': FROZEN, 'error': '', 'history': [], 'size': 0},
-            'games': [{'key': g, 'name': GAME_NAMES[g], 'status': 'wait', 'detail': '', 'progress': None, 'queued': False} for g in games],
+            'games': [{'key': g, 'name': GAME_NAMES[g], 'status': 'wait', 'detail': '', 'progress': None, 'queued': False, 'pool': '', 'page': 0, 'added': None, 'last': '',
+                       'pools': [{'label': label, 'status': 'wait', 'n': 0} for label in POOL_LABELS[g].values()]} for g in games],
         }
         self.last_poll = 0.0
         self.polled = False
@@ -133,7 +134,9 @@ class Reporter:
                 LANG = self.cfg['lang'] = patch['lang']
             if isinstance(patch.get('autoUpdate'), bool):
                 self.cfg['autoUpdate'] = patch['autoUpdate']
-            self.state['settings'] = {'lang': LANG, 'autoUpdate': bool(self.cfg.get('autoUpdate'))}
+            if patch.get('theme') in ('light', 'dark'):
+                self.cfg['theme'] = patch['theme']
+            self.state['settings'] = {'lang': LANG, 'autoUpdate': bool(self.cfg.get('autoUpdate')), 'theme': self.cfg.get('theme', '')}
         try:
             save_config(self.cfg)
         except OSError:
@@ -172,6 +175,25 @@ class Reporter:
             self.state['member'] = name or ''
         self.phase('idle')
 
+    def logout(self):
+        """Called from the page: forget the saved sign-in and show the sign-in card again (not while a sync is running)."""
+        with self.lock:
+            if self.pending or self.state['login']['needed'] or self.state['phase'] in ('login', 'updating'):
+                return
+            self.cfg.pop('token', None)
+            self.cfg.pop('name', None)
+        try:
+            save_config(self.cfg)
+        except OSError:
+            pass
+        try:
+            self.need_login(self.cfg)
+        except (urllib.error.URLError, OSError) as e:
+            with self.lock:
+                self.state['login'].update(needed=True, waiting=False, providers=[], error=tr('Connection failed: {e}', e=e), code='')
+                self.state['member'] = ''
+            self.phase('idle')
+
     def request_login(self, provider):
         """Called from the page: start the browser sign-in with the chosen provider."""
         with self.lock:
@@ -202,7 +224,8 @@ class Reporter:
         with self.lock:
             self.state['member'] = name or ''
 
-    def game(self, key, status=None, detail=None, progress='keep'):
+    def game(self, key, status=None, detail=None, progress='keep', **extra):
+        """extra: pool (label being read), page, pools (per pool: label, status, n), added, last; they are copied into the game as they are."""
         with self.lock:
             for g in self.state['games']:
                 if g['key'] == key:
@@ -213,6 +236,7 @@ class Reporter:
                         g['detail'] = detail
                     if progress != 'keep':
                         g['progress'] = progress
+                    g.update(extra)
         print(f"[{GAME_NAMES[key]}] {status or ''} {detail or ''}", flush=True)
 
 
@@ -232,7 +256,7 @@ def serve_ui(reporter, port):
 
         def do_POST(self):
             path = self.path.split('?')[0]
-            if path not in ('/sync', '/check', '/update', '/settings', '/login') or self.headers.get('X-Wishbook') != '1':
+            if path not in ('/sync', '/check', '/update', '/settings', '/login', '/logout') or self.headers.get('X-Wishbook') != '1':
                 self.send_response(403)
                 self.end_headers()
                 return
@@ -254,6 +278,13 @@ def serve_ui(reporter, port):
                     body = {}
                 if isinstance(body, dict):
                     reporter.request_login(str(body.get('provider') or ''))
+                self.send_response(200)
+                self.send_header('Content-Length', '2')
+                self.end_headers()
+                self.wfile.write(b'ok')
+                return
+            if path == '/logout':
+                threading.Thread(target=reporter.logout, daemon=True).start()  # asks the site for the provider list, so not on the request thread
                 self.send_response(200)
                 self.send_header('Content-Length', '2')
                 self.end_headers()
@@ -465,35 +496,53 @@ def wuwa_url(cfg):
 
 # ---------- fetching ----------
 
+def pool_states(game):
+    return [{'label': label, 'status': 'wait', 'n': 0} for label in POOL_LABELS[game].values()]
+
+
 def fetch_hoyo(game, url, step):
     spec = HOYO[game]
     base = hoyo_base(url)
     pulls, uid = [], ''
     total = len(spec['pools'])
+    ps = pool_states(game)
+    show = lambda i, detail, frac, page: step(detail, (i + frac) / total, pool=ps[i]['label'], page=page, pools=[dict(x) for x in ps])
     for i, (pool, gtype) in enumerate(spec['pools']):
-        step(tr('Reading {name}…', name=tr(POOL_LABELS[game][pool])), i / total)
-        rows, end_id = [], '0'
-        while True:
-            for attempt in range(6):  # "visit too frequently" (-110) is temporary: wait and ask again
-                d = http_json(spec['api'] + '?' + urllib.parse.urlencode(hoyo_params(game, base, gtype, end_id)))
-                if d.get('retcode') != -110:
+        detail = tr('Reading {name}…', name=tr(ps[i]['label']))
+        ps[i]['status'] = 'run'
+        show(i, detail, 0, 0)
+        rows, end_id, page = [], '0', 0
+        try:
+            while True:
+                for attempt in range(6):  # "visit too frequently" (-110) is temporary: wait and ask again
+                    d = http_json(spec['api'] + '?' + urllib.parse.urlencode(hoyo_params(game, base, gtype, end_id)))
+                    if d.get('retcode') != -110:
+                        break
+                    time.sleep(4 + attempt * 3)
+                if d.get('retcode') != 0:
+                    if d.get('retcode') == -101:
+                        raise Failure(tr('The history link has expired. Open the in-game pull history again.'))
+                    raise Failure(tr('Official API error {code}: {msg}', code=d.get('retcode'), msg=d.get('message')))
+                lst = d['data']['list']
+                if not lst:
                     break
-                time.sleep(4 + attempt * 3)
-            if d.get('retcode') != 0:
-                if d.get('retcode') == -101:
-                    raise Failure(tr('The history link has expired. Open the in-game pull history again.'))
-                raise Failure(tr('Official API error {code}: {msg}', code=d.get('retcode'), msg=d.get('message')))
-            lst = d['data']['list']
-            if not lst:
-                break
-            rows += lst
-            end_id = lst[-1]['id']
-            time.sleep(0.7)
+                rows += lst
+                end_id = lst[-1]['id']
+                page += 1
+                ps[i]['n'] = len(rows)
+                show(i, detail, 1 - 1 / (1 + page / 3), page)
+                time.sleep(0.7)
+        except Exception:
+            ps[i]['status'] = 'bad'
+            show(i, detail, 0, page)
+            raise
+        ps[i]['status'] = 'ok'
         chrono = sorted(rows, key=lambda x: int(x['id']))
         pulls += [{'pool': pool, 'id': x['id'], 'time': x['time'], 'item_id': str(x.get('item_id') or ''), 'name': x['name'], 'rarity': spec['rarity'](x['rank_type']), 'kind': x.get('item_type'),
                    'gacha_id': str(x.get('gacha_id') or '') or None} for x in chrono]
         if rows:
             uid = rows[0].get('uid', uid)
+    step(tr('Uploading…'), 0.97, pool='', page=0, pools=[dict(x) for x in ps])
     return uid, pulls, 'zh-tw'  # hoyo_base() asks the API for zh-tw names, whatever language the link had
 
 
@@ -505,11 +554,20 @@ def fetch_wuwa(url, step):
     lang = q.get('lang', ['zh-Hant'])[0]
     pulls = []
     total = len(WUWA_POOLS)
+    ps = pool_states('wuwa')
+    show = lambda i, detail, frac: step(detail, (i + frac) / total, pool=ps[i]['label'], page=0, pools=[dict(x) for x in ps])
     for i, (ptype, pool) in enumerate(WUWA_POOLS.items()):
-        step(tr('Reading {name}…', name=tr(POOL_LABELS['wuwa'][pool])), i / total)
-        d = http_json(WUWA_API, {'playerId': need['player_id'], 'cardPoolId': need['resources_id'], 'cardPoolType': ptype, 'serverId': need['svr_id'], 'languageCode': lang, 'recordId': need['record_id']})
-        if d.get('code') != 0:
-            raise Failure(tr('The history link has expired. Open the in-game pull history again.'))
+        detail = tr('Reading {name}…', name=tr(POOL_LABELS['wuwa'][pool]))
+        ps[i]['status'] = 'run'
+        show(i, detail, 0)
+        try:
+            d = http_json(WUWA_API, {'playerId': need['player_id'], 'cardPoolId': need['resources_id'], 'cardPoolType': ptype, 'serverId': need['svr_id'], 'languageCode': lang, 'recordId': need['record_id']})
+            if d.get('code') != 0:
+                raise Failure(tr('The history link has expired. Open the in-game pull history again.'))
+        except Exception:
+            ps[i]['status'] = 'bad'
+            show(i, detail, 0)
+            raise
         rows = list(reversed(d.get('data') or []))  # API is newest first
         # no record id from the API, so the id is the second plus the nth pull inside that second
         counter, items = {}, []
@@ -517,6 +575,9 @@ def fetch_wuwa(url, step):
             counter[x['time']] = counter.get(x['time'], 0) + 1
             items.append({'pool': pool, 'id': f"{x['time']}#{counter[x['time']]:02d}", 'time': x['time'], 'item_id': str(x.get('resourceId') or ''), 'name': x['name'], 'rarity': x['qualityLevel'], 'kind': x.get('resourceType')})
         pulls += items
+        ps[i]['status'], ps[i]['n'] = 'ok', len(items)
+        show(i, detail, 1)
+    step(tr('Uploading…'), 0.97, pool='', page=0, pools=[dict(x) for x in ps])
     return need['player_id'], pulls, lang
 
 
@@ -618,14 +679,13 @@ def sync_game(cfg, g, url, installed, args, reporter):
     if not url:
         reporter.game(g, 'skip', tr('Never opened the in-game pull history') if installed else tr('Game not found'), None)
         return False
-    reporter.game(g, 'run', tr('Getting ready…'), 0)
-    step = lambda detail, p: reporter.game(g, 'run', detail, p)
+    reporter.game(g, 'run', tr('Getting ready…'), 0, pool='', page=0)
+    step = lambda detail, p, **extra: reporter.game(g, 'run', detail, p, **extra)
     try:
         uid, pulls, lang = fetch_wuwa(url, step) if g == 'wuwa' else fetch_hoyo(g, url, step)
         if args.dry_run:
             reporter.game(g, 'ok', tr('Dry run: read {n} records (not uploaded)', n=len(pulls)), None)
             return False
-        step(tr('Uploading…'), 0.97)
         try:
             r = upload(cfg, g, uid, pulls, lang)
         except urllib.error.HTTPError as e:
@@ -637,12 +697,18 @@ def sync_game(cfg, g, url, installed, args, reporter):
         detail = tr('{n} new, 5-star +{n5}', n=r['added'], n5=r['added5']) if r['added'] else tr('No new records')
         if r.get('rejected'):
             detail += tr(' ({n} skipped: invalid format)', n=r['rejected'])
-        reporter.game(g, 'ok', detail, None)
+        now = time.strftime('%Y-%m-%dT%H:%M:%S')
+        cfg.setdefault('last', {})[g] = now
+        try:
+            save_config(cfg)
+        except OSError:
+            pass
+        reporter.game(g, 'ok', detail, None, pool='', page=0, added=r['added'], last=now)
         return False
     except Failure as e:
-        reporter.game(g, 'bad', str(e), None)
+        reporter.game(g, 'bad', str(e), None, pool='', page=0)
     except (urllib.error.URLError, OSError) as e:
-        reporter.game(g, 'bad', tr('Connection failed: {e}', e=e), None)
+        reporter.game(g, 'bad', tr('Connection failed: {e}', e=e), None, pool='', page=0)
     return True
 
 
@@ -822,7 +888,9 @@ def run(args, reporter):
     cfg['lang'] = LEGACY_LANGS.get(cfg.get('lang'), cfg.get('lang'))
     LANG = cfg['lang'] if cfg.get('lang') in LANGS else system_lang()
     reporter.cfg = cfg
-    reporter.state['settings'] = {'lang': LANG, 'autoUpdate': bool(cfg.get('autoUpdate'))}
+    reporter.state['settings'] = {'lang': LANG, 'autoUpdate': bool(cfg.get('autoUpdate')), 'theme': cfg.get('theme', '')}
+    for x in reporter.state['games']:
+        x['last'] = str((cfg.get('last') or {}).get(x['key']) or '')
     reporter.state['site'] = cfg['server']
     reporter.check = lambda: threading.Thread(target=check_version, args=(cfg, reporter, True), daemon=True).start()
     threading.Thread(target=check_version, args=(cfg, reporter), daemon=True).start()
